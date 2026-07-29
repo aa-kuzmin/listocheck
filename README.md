@@ -1,3 +1,3 @@
-# listocheck
+# ListOcheck
 
-A new Flutter project.
+Minimalistic list
