@@ -49,7 +49,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
-  String get clearAll => 'Clear list';
+  String get clearAll => 'Clear list?';
 
   @override
   String get clearAllConfirm => 'All items will be deleted without recovery';
@@ -123,4 +123,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aboutContentText =>
       'LISTOCHEK v1.1.0\n\nMinimalistic list management app\n\n© ️Aleksei A. Kuzmin';
+
+  @override
+  String get errLoadFontSize => 'Error loading the font size';
+
+  @override
+  String get errSaveFontSize => 'Error saving font size';
+
+  @override
+  String get errLoadTitleFontSize => 'Error loading the font size of the title';
+
+  @override
+  String get errSaveTitleFontSize => 'Error saving the font size of the title';
+
+  @override
+  String get errLoadSelInd => 'Error loading the selected index';
+
+  @override
+  String get errSaveSelInd => 'Error saving the selected index';
+
+  @override
+  String get errLoadList => 'Error loading the list';
+
+  @override
+  String get errSaveList => 'Error saving the list';
 }

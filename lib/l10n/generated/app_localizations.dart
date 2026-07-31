@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @clearAll.
   ///
   /// In ru, this message translates to:
-  /// **'Очистить список'**
+  /// **'Очистить список?'**
   String get clearAll;
 
   /// No description provided for @clearAllConfirm.
@@ -325,6 +325,54 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'ЛИСТОЧЕК v1.1.0\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин'**
   String get aboutContentText;
+
+  /// No description provided for @errLoadFontSize.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки размера шрифта'**
+  String get errLoadFontSize;
+
+  /// No description provided for @errSaveFontSize.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка сохранения размера шрифта'**
+  String get errSaveFontSize;
+
+  /// No description provided for @errLoadTitleFontSize.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки размера шрифта заголовка'**
+  String get errLoadTitleFontSize;
+
+  /// No description provided for @errSaveTitleFontSize.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка сохранения размера шрифта заголовка'**
+  String get errSaveTitleFontSize;
+
+  /// No description provided for @errLoadSelInd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки выбранного индекса'**
+  String get errLoadSelInd;
+
+  /// No description provided for @errSaveSelInd.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка сохранения выбранного индекса'**
+  String get errSaveSelInd;
+
+  /// No description provided for @errLoadList.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка загрузки списка'**
+  String get errLoadList;
+
+  /// No description provided for @errSaveList.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка сохранения списка'**
+  String get errSaveList;
 }
 
 class _AppLocalizationsDelegate
