@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-//import 'dart:convert';
 import 'package:flutter/services.dart';
-//import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/l10n.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
