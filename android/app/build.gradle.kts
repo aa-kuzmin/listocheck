@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.listocheck"
+    namespace = "com.kuzmin.listocheck"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
