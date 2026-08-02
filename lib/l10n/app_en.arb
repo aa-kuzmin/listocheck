@@ -13,7 +13,7 @@
   "enterItem": "Enter item name",
   "add": "Add",
   "cancel": "Cancel",
-  "clearAll": "Clear list",
+  "clearAll": "Clear list?",
   "clearAllConfirm": "All items will be deleted without recovery",
   "clear": "Clear",
   "uncheckAll": "Uncheck all?",
@@ -37,5 +37,13 @@
   "openMenu": "Open menu",
   "uncheckAllTooltip": "Uncheck all",
   "clearAllTooltip": "Clear list",
-  "aboutContentText": "LISTOCHEK v1.1.0\n\nMinimalistic list management app\n\n© ️Aleksei A. Kuzmin"
+  "aboutContentText": "LISTOCHEK v1.1.0\n\nMinimalistic list management app\n\n© ️Aleksei A. Kuzmin",
+  "errLoadFontSize": "Error loading the font size",
+  "errSaveFontSize": "Error saving font size",
+  "errLoadTitleFontSize": "Error loading the font size of the title",
+  "errSaveTitleFontSize": "Error saving the font size of the title",
+  "errLoadSelInd": "Error loading the selected index",
+  "errSaveSelInd": "Error saving the selected index",
+  "errLoadList": "Error loading the list",
+  "errSaveList": "Error saving the list"
 }

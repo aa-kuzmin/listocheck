@@ -2,24 +2,86 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/l10n.dart';
+import 'l10n/generated/app_localizations.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+
+}
+
+class _MyAppState extends State<MyApp> {
+  Locale _locale = const Locale('ru');
+  bool _isLocaleLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocale();
+  }
+
+  Future<void> _loadLocale() async {
+    try {
+      // Получаем язык системы Android
+      final String systemLanguage = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+      //final String systemLanguage = View.of(context).platformDispatcher.locale.languageCode;
+      //final String systemLanguage = WidgetsBinding.instance?.platformDispatcher.locale.languageCode ?? 'en';
+
+      // Определяем язык приложения
+      String languageCode;
+      if (systemLanguage == 'ru') {
+        languageCode = 'ru';
+      } else {
+        languageCode = 'en';
+      }
+      
+      if (mounted) {  // ← Проверяем, что виджет еще существует
+        setState(() {
+          _locale = Locale(languageCode);
+          _isLocaleLoaded = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {  // ← Проверяем, что виджет еще существует
+        setState(() {
+          _locale = const Locale('en');
+          _isLocaleLoaded = true;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Включаем полноэкранный режим
+    if (!_isLocaleLoaded) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+        debugShowCheckedModeBanner: false,
+      );
+    }
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     return MaterialApp(
-      title: 'Листочек',
+      title: _locale.languageCode == 'ru' ? 'Листочек' : 'Listocheck',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const MyHomePage(),
       debugShowCheckedModeBanner: false,
+      locale: _locale,
+      localizationsDelegates: L10n.localizationsDelegates,
+      supportedLocales: L10n.supportedLocales,
     );
   }
 }
@@ -41,19 +103,20 @@ class _MyHomePageState extends State<MyHomePage> {
   static const String _titleFontSizeKey = 'title_font_size';
   static const String _selectedIndexKey = 'selected_index';
   
-  // Убираем _selectedTabIndex, используем страницу
-  int _currentPageIndex = 0; // 0 - список, 1 - настройки, 2 - профиль
-
+  int _currentPageIndex = 0;
   bool _isFabVisible = true;
   double _lastScrollOffset = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadItems();
-    _loadFontSize();
-    _loadTitleFontSize();
-    _loadSelectedIndex();
+    // Загружаем данные после того, как дерево виджетов построено
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadItems();
+      _loadFontSize();
+      _loadTitleFontSize();
+      _loadSelectedIndex();
+    });  
   }
 
   // Показать сообщение об ошибке
@@ -84,6 +147,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Загрузка размера шрифта элементов из SharedPreferences
   Future<void> _loadFontSize() async {
+    final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
       final double? savedFontSize = prefs.getDouble(_fontSizeKey);
@@ -93,22 +157,24 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       }
     } catch (e) {
-      _showErrorMessage('Ошибка загрузки размера шрифта');
+      _showErrorMessage(localizations?.errLoadFontSize ?? 'Error loading the font size');
     }
   }
 
   // Сохранение размера шрифта элементов в SharedPreferences
   Future<void> _saveFontSize() async {
+    final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble(_fontSizeKey, _fontSize);
     } catch (e) {
-      _showErrorMessage('Ошибка сохранения размера шрифта');
+      _showErrorMessage(localizations?.errSaveFontSize ?? 'Error saving font size');
     }
   }
 
   // Загрузка размера шрифта заголовка из SharedPreferences
   Future<void> _loadTitleFontSize() async {
+    final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
       final double? savedTitleFontSize = prefs.getDouble(_titleFontSizeKey);
@@ -118,22 +184,24 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       }
     } catch (e) {
-      _showErrorMessage('Ошибка загрузки размера шрифта заголовка');
+      _showErrorMessage(localizations?.errLoadTitleFontSize ?? 'Error loading the font size of the title');
     }
   }
 
   // Сохранение размера шрифта заголовка в SharedPreferences
   Future<void> _saveTitleFontSize() async {
+    final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setDouble(_titleFontSizeKey, _titleFontSize);
     } catch (e) {
-      _showErrorMessage('Ошибка сохранения размера шрифта заголовка');
+      _showErrorMessage(localizations?.errSaveTitleFontSize ?? 'Error saving the font size of the title');
     }
   }
 
   // Загрузка выбранного индекса из SharedPreferences
   Future<void> _loadSelectedIndex() async {
+    final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
       final int? savedIndex = prefs.getInt(_selectedIndexKey);
@@ -143,12 +211,13 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       }
     } catch (e) {
-      _showErrorMessage('Ошибка загрузки выбранного индекса');
+      _showErrorMessage(localizations?.errLoadSelInd ?? 'Error loading the selected index');
     }
   }
 
   // Сохранение выбранного индекса в SharedPreferences
   Future<void> _saveSelectedIndex() async {
+    final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
       final prefs = await SharedPreferences.getInstance();
       if (_selectedIndex != null) {
@@ -157,7 +226,7 @@ class _MyHomePageState extends State<MyHomePage> {
         await prefs.remove(_selectedIndexKey);
       }
     } catch (e) {
-      _showErrorMessage('Ошибка сохранения выбранного индекса');
+      _showErrorMessage(localizations?.errSaveSelInd ?? 'Error saving the selected index');
     }
   }
 
@@ -195,6 +264,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Загрузка списка из SharedPreferences
   Future<void> _loadItems() async {
+    final localizations = AppLocalizations.of(context)!;
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? itemsJson = prefs.getString('checklist_items');
@@ -212,7 +282,7 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       }
     } catch (e) {
-      _showErrorMessage('Ошибка загрузки списка');
+      _showErrorMessage(localizations.errLoadList);
       setState(() {
         _isLoading = false;
       });
@@ -221,12 +291,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Сохранение списка в SharedPreferences
   Future<void> _saveItems() async {
+    final localizations = AppLocalizations.of(context)!;
     try {
       final prefs = await SharedPreferences.getInstance();
       final String itemsJson = jsonEncode(_items.map((item) => item.toJson()).toList());
       await prefs.setString('checklist_items', itemsJson);
     } catch (e) {
-      _showErrorMessage('Ошибка сохранения списка');
+      _showErrorMessage(localizations.errSaveList);
     }
   }
 
@@ -277,16 +348,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Снять пометки у всего списка
   void _uncheckAllItems() {
+    final localizations = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Снять пометку?'),
-          content: const Text('Пометка будет снята у всех элементов списка.'),
+          title: Text(localizations.uncheckAll),
+          content: Text(localizations.uncheckAllConfirm),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Отмена'),
+              child: Text(localizations.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -297,10 +369,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
                 _saveItems();
                 Navigator.pop(context);
-                _showInfoMessage('Отметки сняты со всех элементов');
+                _showInfoMessage(localizations.uncheckedAll);
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-              child: const Text('Снять'),
+              child: Text(localizations.uncheck),
             ),
           ],
         );
@@ -310,16 +382,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Очистка всего списка
   void _clearAllItems() {
+    final localizations = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Очистить список?'),
-          content: const Text('Все строки будут удалены без возможности восстановления'),
+          title: Text(localizations.clearAll),
+          content: Text(localizations.clearAllConfirm),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Отмена'),
+              child: Text(localizations.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -330,10 +403,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 _saveItems();
                 _saveSelectedIndex();
                 Navigator.pop(context);
-                _showInfoMessage('Список очищен');
+                _showInfoMessage(localizations.listCleared);
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-              child: const Text('Очистить'),
+              child: Text(localizations.clear),
             ),
           ],
         );
@@ -344,16 +417,16 @@ class _MyHomePageState extends State<MyHomePage> {
   // Диалог добавления строки
   void _showAddItemDialog() {
     final TextEditingController controller = TextEditingController();
-
+    final localizations = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Добавить строку'),
+          title: Text(localizations.addItem),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(
-              hintText: 'Введите строку',
+            decoration: InputDecoration(
+              hintText: localizations.enterItem,
               border: OutlineInputBorder(),
             ),
             autofocus: true,
@@ -368,7 +441,7 @@ class _MyHomePageState extends State<MyHomePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Отмена'),
+              child: Text(localizations.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -378,7 +451,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   Navigator.pop(context);
                 }
               },
-              child: const Text('Добавить'),
+              child: Text(localizations.add),
             ),
           ],
         );
@@ -411,10 +484,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Основной вид со списком
   Widget _buildListPage() {
+    final localizations = AppLocalizations.of(context)!;
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
         : _items.isEmpty
-            ? const Center(
+            ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -425,7 +499,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'Список пуст\r\nНажмите на кнопку "+" внизу\r\nчтобы добавить строку\r\nДанные сохраняются автоматически',
+                      '${localizations.listEmpty}\n${localizations.listEmptyHint}',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
@@ -530,14 +604,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Вид настроек
   Widget _buildSettingsPage() {
+    final localizations = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
           const SizedBox(height: 20),
           const SizedBox(height: 24),
-          const Text(
-            'Настройки шрифта',
+          Text(
+            localizations.fontSettings,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -555,8 +630,8 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Шрифт элементов списка',
+                Text(
+                  localizations.itemFont,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -569,7 +644,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, size: 40),
                       onPressed: _fontSize > 10 ? _decreaseFontSize : null,
-                      tooltip: 'Уменьшить шрифт',
+                      tooltip: localizations.decrease,
                     ),
                     const SizedBox(width: 20),
                     Container(
@@ -591,14 +666,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, size: 40),
                       onPressed: _fontSize < 40 ? _increaseFontSize : null,
-                      tooltip: 'Увеличить шрифт',
+                      tooltip: localizations.increase,
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    'Размер: ${_fontSize.toInt()} px',
+                    '${localizations.fontSize}: ${_fontSize.toInt()} px',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
@@ -608,7 +683,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(height: 12),
                 Center(
                   child: Text(
-                    'Пример текста',
+                    localizations.exampleText,
                     style: TextStyle(
                       fontSize: _fontSize,
                       color: Colors.black,
@@ -631,8 +706,8 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Шрифт заголовка',
+                Text(
+                  localizations.titleFont,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -645,7 +720,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, size: 40),
                       onPressed: _titleFontSize > 20 ? _decreaseTitleFontSize : null,
-                      tooltip: 'Уменьшить шрифт заголовка',
+                      tooltip: localizations.decrease,
                     ),
                     const SizedBox(width: 20),
                     Container(
@@ -667,14 +742,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, size: 40),
                       onPressed: _titleFontSize < 40 ? _increaseTitleFontSize : null,
-                      tooltip: 'Увеличить шрифт заголовка',
+                      tooltip: localizations.increase,
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    'Размер: ${_titleFontSize.toInt()} px',
+                    '${localizations.fontSize}: ${_titleFontSize.toInt()} px',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
@@ -684,7 +759,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(height: 12),
                 Center(
                   child: Text(
-                    'Пример заголовка',
+                    localizations.exampleTitle,
                     style: TextStyle(
                       fontSize: _titleFontSize,
                       color: Colors.black,
@@ -701,7 +776,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Вид профиля
   Widget _buildProfilePage() {
-    return const Center(
+    final localizations = AppLocalizations.of(context)!;
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -712,7 +788,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           SizedBox(height: 24),
           Text(
-            'Профиль',
+            localizations.profile,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -720,7 +796,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           SizedBox(height: 16),
           Text(
-            'В разработке',
+            localizations.inDevelopment,
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey,
@@ -747,6 +823,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
@@ -756,12 +833,12 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
-              tooltip: 'Открыть меню',
+              tooltip: localizations.openMenu,
             );
           },
         ),
         title: Text(
-          _currentPageIndex == 0 ? 'Список' : '',
+          _currentPageIndex == 0 ? localizations.list : '',
           style: TextStyle(
             fontSize: _titleFontSize,
           ),
@@ -772,12 +849,12 @@ class _MyHomePageState extends State<MyHomePage> {
             IconButton(
               icon: const Icon(Icons.check_box_outline_blank),
               onPressed: _items.isEmpty ? null : _uncheckAllItems,
-              tooltip: 'Снять отметку у всех',
+              tooltip: localizations.uncheckAllTooltip,
             ),
             IconButton(
               icon: const Icon(Icons.delete_sweep, color: Colors.red),
               onPressed: _items.isEmpty ? null : _clearAllItems,
-              tooltip: 'Очистить список',
+              tooltip: localizations.clearAllTooltip,
             ),
           ],
         ],
@@ -786,7 +863,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            const DrawerHeader(
+            DrawerHeader(
               decoration: BoxDecoration(
                 color: Colors.blue,
               ),
@@ -795,7 +872,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    'Листочек',
+                    localizations.appTitle,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -804,7 +881,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Минималистичный список',
+                    localizations.appDescription,
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 14,
@@ -815,7 +892,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             ListTile(
               leading: const Icon(Icons.list, color: Colors.blue),
-              title: const Text('Список'),
+              title: Text(localizations.list),
               selected: _currentPageIndex == 0,
               selectedTileColor: Colors.blue.shade50,
               onTap: () {
@@ -827,7 +904,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             ListTile(
               leading: const Icon(Icons.settings, color: Colors.green),
-              title: const Text('Настройки'),
+              title: Text(localizations.settings),
               selected: _currentPageIndex == 1,
               selectedTileColor: Colors.blue.shade50,
               onTap: () {
@@ -839,7 +916,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             ListTile(
               leading: const Icon(Icons.person, color: Colors.purple),
-              title: const Text('Профиль'),
+              title: Text(localizations.profile),
               selected: _currentPageIndex == 2,
               selectedTileColor: Colors.blue.shade50,
               onTap: () {
@@ -852,24 +929,22 @@ class _MyHomePageState extends State<MyHomePage> {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.info_outline, color: Colors.grey),
-              title: const Text('О приложении'),
+              title: Text(localizations.aboutApp),
               onTap: () {
                 Navigator.pop(context);
                 showDialog(
                   context: context,
                   builder: (BuildContext context) {
                     return AlertDialog(
-                      title: const Text(
-                        'О приложении',
+                      title: Text(
+                        localizations.aboutApp,
                         style: TextStyle(
                           fontSize: 24,
                         ),
                         textAlign: .center,
                       ),
                       content: Text(
-                        'ЛИСТОЧЕК v1.0\n\n'
-                        'Минималистичное приложение для ведения списка\n\n'
-                        '©️Алексей А. Кузьмин',
+                        localizations.aboutContentText,
                         style: TextStyle(
                           fontSize: 20,
                         ),
@@ -878,7 +953,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Закрыть'),
+                          child: Text(localizations.close),
                         ),
                       ],
                     );

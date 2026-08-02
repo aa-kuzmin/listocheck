@@ -49,7 +49,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get cancel => 'Отмена';
 
   @override
-  String get clearAll => 'Очистить список';
+  String get clearAll => 'Очистить список?';
 
   @override
   String get clearAllConfirm =>
@@ -125,4 +125,29 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get aboutContentText =>
       'ЛИСТОЧЕК v1.1.0\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин';
+
+  @override
+  String get errLoadFontSize => 'Ошибка загрузки размера шрифта';
+
+  @override
+  String get errSaveFontSize => 'Ошибка сохранения размера шрифта';
+
+  @override
+  String get errLoadTitleFontSize => 'Ошибка загрузки размера шрифта заголовка';
+
+  @override
+  String get errSaveTitleFontSize =>
+      'Ошибка сохранения размера шрифта заголовка';
+
+  @override
+  String get errLoadSelInd => 'Ошибка загрузки выбранного индекса';
+
+  @override
+  String get errSaveSelInd => 'Ошибка сохранения выбранного индекса';
+
+  @override
+  String get errLoadList => 'Ошибка загрузки списка';
+
+  @override
+  String get errSaveList => 'Ошибка сохранения списка';
 }
