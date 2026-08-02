@@ -38,12 +38,8 @@
   "uncheckAllTooltip": "Uncheck all",
   "clearAllTooltip": "Clear list",
   "aboutContentText": "LISTOCHEK v1.1.0\n\nMinimalistic list management app\n\n© ️Aleksei A. Kuzmin",
-  "errLoadFontSize": "Error loading the font size",
-  "errSaveFontSize": "Error saving font size",
-  "errLoadTitleFontSize": "Error loading the font size of the title",
-  "errSaveTitleFontSize": "Error saving the font size of the title",
-  "errLoadSelInd": "Error loading the selected index",
-  "errSaveSelInd": "Error saving the selected index",
+  "errLoadSettings": "Error loading settings",
+  "errSaveSettings": "Error saving settings",
   "errLoadList": "Error loading the list",
   "errSaveList": "Error saving the list"
 }

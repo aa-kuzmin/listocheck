@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'dart:io';
+//import 'dart:convert';
 import 'package:flutter/services.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+//import 'package:flutter_localizations/flutter_localizations.dart';
 import 'l10n/l10n.dart';
 import 'l10n/generated/app_localizations.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:yaml/yaml.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,8 +34,6 @@ class _MyAppState extends State<MyApp> {
     try {
       // Получаем язык системы Android
       final String systemLanguage = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
-      //final String systemLanguage = View.of(context).platformDispatcher.locale.languageCode;
-      //final String systemLanguage = WidgetsBinding.instance?.platformDispatcher.locale.languageCode ?? 'en';
 
       // Определяем язык приложения
       String languageCode;
@@ -102,6 +102,10 @@ class _MyHomePageState extends State<MyHomePage> {
   static const String _fontSizeKey = 'font_size';
   static const String _titleFontSizeKey = 'title_font_size';
   static const String _selectedIndexKey = 'selected_index';
+
+  // Имена файлов с расширением .yaml
+  static const String _itemsFileName = 'checklist_items.yaml';
+  static const String _settingsFileName = 'settings.yaml';
   
   int _currentPageIndex = 0;
   bool _isFabVisible = true;
@@ -112,11 +116,108 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     // Загружаем данные после того, как дерево виджетов построено
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadItems();
-      _loadFontSize();
-      _loadTitleFontSize();
-      _loadSelectedIndex();
+      _loadAllData();
     });  
+  }
+
+  // Загрузка всех данных
+  Future<void> _loadAllData() async {
+    await Future.wait([
+      _loadItems(),
+      _loadSettings(),
+    ]);
+  }
+
+  // Получение пути к директории приложения
+  Future<Directory> _getAppDirectory() async {
+    return await getApplicationDocumentsDirectory();
+  }
+
+  // Получение полного пути к файлу
+  Future<String> _getFilePath(String fileName) async {
+    final dir = await _getAppDirectory();
+    return '${dir.path}/$fileName';
+  }
+
+  // Чтение YAML из файла
+  Future<Map<dynamic, dynamic>?> _readYamlFile(String fileName) async {
+    try {
+      final filePath = await _getFilePath(fileName);
+      final file = File(filePath);
+      
+      if (await file.exists()) {
+        final contents = await file.readAsString();
+        return loadYaml(contents) as Map<dynamic, dynamic>?;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Запись YAML в файл
+  Future<void> _writeYamlFile(String fileName, Map<String, dynamic> data) async {
+    final AppLocalizations? localizations = AppLocalizations.of(context);
+    try {
+      final filePath = await _getFilePath(fileName);
+      final file = File(filePath);
+      
+      // Преобразуем Map в YAML строку вручную
+      String yamlString = _mapToYaml(data);
+      await file.writeAsString(yamlString);
+    } catch (e) {
+      _showErrorMessage(localizations?.errSaveSettings ?? 'Error saving settings');
+    }
+  }
+
+  // Преобразование Map в YAML строку
+  String _mapToYaml(Map<String, dynamic> data, {int indent = 0}) {
+    final buffer = StringBuffer();
+    final indentStr = '  ' * indent;
+    
+    data.forEach((key, value) {
+      if (value is Map<String, dynamic>) {
+        buffer.writeln('$indentStr$key:');
+        buffer.write(_mapToYaml(value, indent: indent + 1));
+      } else if (value is List) {
+        buffer.writeln('$indentStr$key:');
+        for (var item in value) {
+          if (item is Map<String, dynamic>) {
+            buffer.write('$indentStr  - ');
+            // Для списка объектов с одним полем
+            if (item.length == 1) {
+              final entry = item.entries.first;
+              if (entry.value is String) {
+                buffer.writeln('${entry.key}: ${_escapeYamlString(entry.value)}');
+              } else {
+                buffer.writeln('${entry.key}: $entry.value');
+              }
+            } else {
+              buffer.writeln();
+              buffer.write(_mapToYaml(item, indent: indent + 2));
+            }
+          } else if (item is String) {
+            buffer.writeln('$indentStr  - ${_escapeYamlString(item)}');
+          } else {
+            buffer.writeln('$indentStr  - $item');
+          }
+        }
+      } else if (value is String) {
+        buffer.writeln('$indentStr$key: ${_escapeYamlString(value)}');
+      } else {
+        buffer.writeln('$indentStr$key: $value');
+      }
+    });
+    
+    return buffer.toString();
+  }
+
+  // Экранирование строк для YAML
+  String _escapeYamlString(String value) {
+    if (value.contains(':') || value.contains('#') || value.contains('\n')) {
+      return '"$value"';
+    }
+    return value;
   }
 
   // Показать сообщение об ошибке
@@ -145,88 +246,35 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // Загрузка размера шрифта элементов из SharedPreferences
-  Future<void> _loadFontSize() async {
+  // Загрузка настроек из файла
+  Future<void> _loadSettings() async {
     final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final double? savedFontSize = prefs.getDouble(_fontSizeKey);
-      if (savedFontSize != null) {
+      final data = await _readYamlFile(_settingsFileName);
+      if (data != null) {
         setState(() {
-          _fontSize = savedFontSize;
+          _fontSize = (data[_fontSizeKey] as double?) ?? 18.0;
+          _titleFontSize = (data[_titleFontSizeKey] as double?) ?? 20.0;
+          _selectedIndex = data[_selectedIndexKey];
         });
       }
     } catch (e) {
-      _showErrorMessage(localizations?.errLoadFontSize ?? 'Error loading the font size');
+      _showErrorMessage(localizations?.errLoadSettings ?? 'Error loading settings');
     }
   }
 
-  // Сохранение размера шрифта элементов в SharedPreferences
-  Future<void> _saveFontSize() async {
+  // Сохранение настроек в файл
+  Future<void> _saveSettings() async {
     final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble(_fontSizeKey, _fontSize);
+      final data = {
+        _fontSizeKey: _fontSize,
+        _titleFontSizeKey: _titleFontSize,
+        _selectedIndexKey: _selectedIndex,
+      };
+      await _writeYamlFile(_settingsFileName, data);
     } catch (e) {
-      _showErrorMessage(localizations?.errSaveFontSize ?? 'Error saving font size');
-    }
-  }
-
-  // Загрузка размера шрифта заголовка из SharedPreferences
-  Future<void> _loadTitleFontSize() async {
-    final AppLocalizations? localizations = AppLocalizations.of(context);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final double? savedTitleFontSize = prefs.getDouble(_titleFontSizeKey);
-      if (savedTitleFontSize != null) {
-        setState(() {
-          _titleFontSize = savedTitleFontSize;
-        });
-      }
-    } catch (e) {
-      _showErrorMessage(localizations?.errLoadTitleFontSize ?? 'Error loading the font size of the title');
-    }
-  }
-
-  // Сохранение размера шрифта заголовка в SharedPreferences
-  Future<void> _saveTitleFontSize() async {
-    final AppLocalizations? localizations = AppLocalizations.of(context);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble(_titleFontSizeKey, _titleFontSize);
-    } catch (e) {
-      _showErrorMessage(localizations?.errSaveTitleFontSize ?? 'Error saving the font size of the title');
-    }
-  }
-
-  // Загрузка выбранного индекса из SharedPreferences
-  Future<void> _loadSelectedIndex() async {
-    final AppLocalizations? localizations = AppLocalizations.of(context);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final int? savedIndex = prefs.getInt(_selectedIndexKey);
-      if (savedIndex != null && savedIndex >= 0 && savedIndex < _items.length) {
-        setState(() {
-          _selectedIndex = savedIndex;
-        });
-      }
-    } catch (e) {
-      _showErrorMessage(localizations?.errLoadSelInd ?? 'Error loading the selected index');
-    }
-  }
-
-  // Сохранение выбранного индекса в SharedPreferences
-  Future<void> _saveSelectedIndex() async {
-    final AppLocalizations? localizations = AppLocalizations.of(context);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (_selectedIndex != null) {
-        await prefs.setInt(_selectedIndexKey, _selectedIndex!);
-      } else {
-        await prefs.remove(_selectedIndexKey);
-      }
-    } catch (e) {
-      _showErrorMessage(localizations?.errSaveSelInd ?? 'Error saving the selected index');
+      _showErrorMessage(localizations?.errSaveSettings ?? 'Error saving settings');
     }
   }
 
@@ -235,7 +283,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _fontSize = (_fontSize + 2.0).clamp(10.0, 40.0);
     });
-    _saveFontSize();
+    _saveSettings();
   }
 
   // Уменьшение шрифта элементов
@@ -243,7 +291,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _fontSize = (_fontSize - 2.0).clamp(10.0, 40.0);
     });
-    _saveFontSize();
+    _saveSettings();
   }
 
   // Увеличение шрифта заголовка
@@ -251,7 +299,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _titleFontSize = (_titleFontSize + 2.0).clamp(20.0, 40.0);
     });
-    _saveTitleFontSize();
+    _saveSettings();
   }
 
   // Уменьшение шрифта заголовка
@@ -259,23 +307,26 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _titleFontSize = (_titleFontSize - 2.0).clamp(20.0, 40.0);
     });
-    _saveTitleFontSize();
+    _saveSettings();
   }
 
-  // Загрузка списка из SharedPreferences
+  // Загрузка списка из файла
   Future<void> _loadItems() async {
     final localizations = AppLocalizations.of(context)!;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String? itemsJson = prefs.getString('checklist_items');
+      final data = await _readYamlFile(_itemsFileName);
       
-      if (itemsJson != null) {
-        final List<dynamic> decodedList = jsonDecode(itemsJson);
+      if (data != null && data['items'] is List) {
+        final List<dynamic> decodedList = data['items'] as List;
         setState(() {
-          _items = decodedList.map((item) => ChecklistItem.fromJson(item)).toList();
+          _items = decodedList.map((item) {
+            if (item is Map) {
+              return ChecklistItem.fromYaml(item);
+            }
+            return ChecklistItem(name: item.toString(), isChecked: false);
+          }).toList();
           _isLoading = false;
         });
-        await _loadSelectedIndex();
       } else {
         setState(() {
           _isLoading = false;
@@ -289,13 +340,14 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // Сохранение списка в SharedPreferences
+  // Сохранение списка в файл
   Future<void> _saveItems() async {
     final localizations = AppLocalizations.of(context)!;
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final String itemsJson = jsonEncode(_items.map((item) => item.toJson()).toList());
-      await prefs.setString('checklist_items', itemsJson);
+      final data = {
+        'items': _items.map((item) => item.toYaml()).toList(),
+      };
+      await _writeYamlFile(_itemsFileName, data);
     } catch (e) {
       _showErrorMessage(localizations.errSaveList);
     }
@@ -306,7 +358,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _selectedIndex = index;
     });
-    _saveSelectedIndex();
+    _saveSettings();
   }
 
   // Добавление новой строки
@@ -321,7 +373,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
     _saveItems();
-    _saveSelectedIndex();
+    _saveSettings();
   }
 
   // Переключение состояния чекбокса
@@ -343,7 +395,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
     _saveItems();
-    _saveSelectedIndex();
+    _saveSettings();
   }
 
   // Снять пометки у всего списка
@@ -401,7 +453,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   _selectedIndex = null;
                 });
                 _saveItems();
-                _saveSelectedIndex();
+                _saveSettings();
                 Navigator.pop(context);
                 _showInfoMessage(localizations.listCleared);
               },
@@ -479,7 +531,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
     _saveItems();
-    _saveSelectedIndex();
+    _saveSettings();
   }
 
   // Основной вид со списком
@@ -994,17 +1046,17 @@ class ChecklistItem {
     required this.isChecked,
   });
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toYaml() {
     return {
       'name': name,
-      'isChecked': isChecked,
+      'is_checked': isChecked,
     };
   }
 
-  factory ChecklistItem.fromJson(Map<String, dynamic> json) {
+  factory ChecklistItem.fromYaml(Map<dynamic, dynamic> json) {
     return ChecklistItem(
       name: json['name'] as String,
-      isChecked: json['isChecked'] as bool,
+      isChecked: json['is_checked'] as bool,
     );
   }
 }

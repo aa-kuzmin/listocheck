@@ -125,22 +125,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'LISTOCHEK v1.1.0\n\nMinimalistic list management app\n\n© ️Aleksei A. Kuzmin';
 
   @override
-  String get errLoadFontSize => 'Error loading the font size';
+  String get errLoadSettings => 'Error loading settings';
 
   @override
-  String get errSaveFontSize => 'Error saving font size';
-
-  @override
-  String get errLoadTitleFontSize => 'Error loading the font size of the title';
-
-  @override
-  String get errSaveTitleFontSize => 'Error saving the font size of the title';
-
-  @override
-  String get errLoadSelInd => 'Error loading the selected index';
-
-  @override
-  String get errSaveSelInd => 'Error saving the selected index';
+  String get errSaveSettings => 'Error saving settings';
 
   @override
   String get errLoadList => 'Error loading the list';

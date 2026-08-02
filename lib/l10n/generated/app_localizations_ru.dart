@@ -127,23 +127,10 @@ class AppLocalizationsRu extends AppLocalizations {
       'ЛИСТОЧЕК v1.1.0\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин';
 
   @override
-  String get errLoadFontSize => 'Ошибка загрузки размера шрифта';
+  String get errLoadSettings => 'Ошибка загрузки настроек';
 
   @override
-  String get errSaveFontSize => 'Ошибка сохранения размера шрифта';
-
-  @override
-  String get errLoadTitleFontSize => 'Ошибка загрузки размера шрифта заголовка';
-
-  @override
-  String get errSaveTitleFontSize =>
-      'Ошибка сохранения размера шрифта заголовка';
-
-  @override
-  String get errLoadSelInd => 'Ошибка загрузки выбранного индекса';
-
-  @override
-  String get errSaveSelInd => 'Ошибка сохранения выбранного индекса';
+  String get errSaveSettings => 'Ошибка сохранения настроек';
 
   @override
   String get errLoadList => 'Ошибка загрузки списка';

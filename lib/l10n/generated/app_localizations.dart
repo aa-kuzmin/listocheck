@@ -326,41 +326,17 @@ abstract class AppLocalizations {
   /// **'ЛИСТОЧЕК v1.1.0\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин'**
   String get aboutContentText;
 
-  /// No description provided for @errLoadFontSize.
+  /// No description provided for @errLoadSettings.
   ///
   /// In ru, this message translates to:
-  /// **'Ошибка загрузки размера шрифта'**
-  String get errLoadFontSize;
+  /// **'Ошибка загрузки настроек'**
+  String get errLoadSettings;
 
-  /// No description provided for @errSaveFontSize.
+  /// No description provided for @errSaveSettings.
   ///
   /// In ru, this message translates to:
-  /// **'Ошибка сохранения размера шрифта'**
-  String get errSaveFontSize;
-
-  /// No description provided for @errLoadTitleFontSize.
-  ///
-  /// In ru, this message translates to:
-  /// **'Ошибка загрузки размера шрифта заголовка'**
-  String get errLoadTitleFontSize;
-
-  /// No description provided for @errSaveTitleFontSize.
-  ///
-  /// In ru, this message translates to:
-  /// **'Ошибка сохранения размера шрифта заголовка'**
-  String get errSaveTitleFontSize;
-
-  /// No description provided for @errLoadSelInd.
-  ///
-  /// In ru, this message translates to:
-  /// **'Ошибка загрузки выбранного индекса'**
-  String get errLoadSelInd;
-
-  /// No description provided for @errSaveSelInd.
-  ///
-  /// In ru, this message translates to:
-  /// **'Ошибка сохранения выбранного индекса'**
-  String get errSaveSelInd;
+  /// **'Ошибка сохранения настроек'**
+  String get errSaveSettings;
 
   /// No description provided for @errLoadList.
   ///
