@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'l10n/l10n.dart';
 import 'l10n/generated/app_localizations.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:yaml/yaml.dart';
 
 import 'models/checklist_item.dart';
+import 'services/settings_service.dart';
+import 'services/list_service.dart';
+import 'utils/errors.dart';
 
 void main() {
   runApp(const MyApp());
@@ -94,19 +94,11 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<ChecklistItem> _items = [];
-  bool _isLoading = true;
-  double _fontSize = 18.0;
-  double _titleFontSize = 20.0;
-  int? _selectedIndex = 0;
-  static const String _fontSizeKey = 'font_size';
-  static const String _titleFontSizeKey = 'title_font_size';
-  static const String _selectedIndexKey = 'selected_index';
+  final SettingsService _settings = SettingsService();
+  final ListService _list = ListService();
 
-  // Имена файлов с расширением .yaml
-  static const String _itemsFileName = 'checklist_items.yaml';
-  static const String _settingsFileName = 'settings.yaml';
-  
+  bool _isLoading = true;
+
   int _currentPageIndex = 0;
   bool _isFabVisible = true;
   double _lastScrollOffset = 0;
@@ -122,12 +114,33 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Загрузка всех данных
   Future<void> _loadAllData() async {
-    await Future.wait([
-      _loadItems(),
-      _loadSettings(),
-    ]);
-  }
+    final localizations = AppLocalizations.of(context)!;
 
+    var result = await _settings.load();
+    if (result is Failure) {
+      _showErrorMessage(localizations.errLoadSettings);
+    } else {
+      if (result is Success && result.data != null) {
+        setState((){});
+      }
+    }
+
+    result = await _list.load();
+    if (result is Failure) {
+      _showErrorMessage(localizations.errLoadList);
+    } else {
+      if (result is Success && result.data != null) {
+        setState((){});
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+
+  }
 
   // Показать сообщение об ошибке
   void _showErrorMessage(String message) {
@@ -158,121 +171,78 @@ class _MyHomePageState extends State<MyHomePage> {
   // Увеличение шрифта элементов
   void _increaseFontSize() {
     setState(() {
-      _fontSize = (_fontSize + 2.0).clamp(10.0, 40.0);
+      _settings.fontSize = (_settings.fontSize + 2.0).clamp(10.0, 40.0);
     });
-    _saveSettings();
+    _settings.save();
   }
 
   // Уменьшение шрифта элементов
   void _decreaseFontSize() {
     setState(() {
-      _fontSize = (_fontSize - 2.0).clamp(10.0, 40.0);
+      _settings.fontSize = (_settings.fontSize - 2.0).clamp(10.0, 40.0);
     });
-    _saveSettings();
+    _settings.save();
   }
 
   // Увеличение шрифта заголовка
   void _increaseTitleFontSize() {
     setState(() {
-      _titleFontSize = (_titleFontSize + 2.0).clamp(20.0, 40.0);
+      _settings.titleFontSize = (_settings.titleFontSize + 2.0).clamp(20.0, 40.0);
     });
-    _saveSettings();
+    _settings.save();
   }
 
   // Уменьшение шрифта заголовка
   void _decreaseTitleFontSize() {
     setState(() {
-      _titleFontSize = (_titleFontSize - 2.0).clamp(20.0, 40.0);
+      _settings.titleFontSize = (_settings.titleFontSize - 2.0).clamp(20.0, 40.0);
     });
-    _saveSettings();
-  }
-
-  // Загрузка списка из файла
-  Future<void> _loadItems() async {
-    final localizations = AppLocalizations.of(context)!;
-    try {
-      final data = await _readYamlFile(_itemsFileName);
-      
-      if (data != null && data['items'] is List) {
-        final List<dynamic> decodedList = data['items'] as List;
-        setState(() {
-          _items = decodedList.map((item) {
-            if (item is Map) {
-              return ChecklistItem.fromYaml(item);
-            }
-            return ChecklistItem(name: item.toString(), isChecked: false);
-          }).toList();
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      _showErrorMessage(localizations.errLoadList);
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Сохранение списка в файл
-  Future<void> _saveItems() async {
-    final localizations = AppLocalizations.of(context)!;
-    try {
-      final data = {
-        'items': _items.map((item) => item.toYaml()).toList(),
-      };
-      await _writeYamlFile(_itemsFileName, data);
-    } catch (e) {
-      _showErrorMessage(localizations.errSaveList);
-    }
+    _settings.save();
   }
 
   // Выбор элемента
   void _selectItem(int index) {
     setState(() {
-      _selectedIndex = index;
+      _settings.selectedIndex = index;
     });
-    _saveSettings();
+    _settings.save();
   }
 
   // Добавление новой строки
   void _addItem(String name) {
     setState(() {
-      if (_selectedIndex != null && _selectedIndex! < _items.length) {
-        _items.insert(_selectedIndex! + 1, ChecklistItem(name: name, isChecked: false));
-        _selectedIndex = _selectedIndex! + 1;
+      if (_settings.selectedIndex != null && _settings.selectedIndex! < _list.items.length) {
+        _list.items.insert(_settings.selectedIndex! + 1, ChecklistItem(name: name, isChecked: false));
+        _settings.selectedIndex = _settings.selectedIndex! + 1;
       } else {
-        _items.add(ChecklistItem(name: name, isChecked: false));
-        _selectedIndex = _items.length - 1;
+        _list.items.add(ChecklistItem(name: name, isChecked: false));
+        _settings.selectedIndex = _list.items.length - 1;
       }
     });
-    _saveItems();
-    _saveSettings();
+    _list.save();
+    _settings.save();
   }
 
   // Переключение состояния чекбокса
   void _toggleItem(int index) {
     setState(() {
-      _items[index].isChecked = !_items[index].isChecked;
+      _list.items[index].isChecked = !_list.items[index].isChecked;
     });
-    _saveItems();
+    _list.save();
   }
 
   // Удаление товара
   void _deleteItem(int index) {
     setState(() {
-      _items.removeAt(index);
-      if (_selectedIndex == index) {
-        _selectedIndex = null;
-      } else if (_selectedIndex != null && _selectedIndex! > index) {
-        _selectedIndex = _selectedIndex! - 1;
+      _list.items.removeAt(index);
+      if (_settings.selectedIndex == index) {
+        _settings.selectedIndex = null;
+      } else if (_settings.selectedIndex != null && _settings.selectedIndex! > index) {
+        _settings.selectedIndex = _settings.selectedIndex! - 1;
       }
     });
-    _saveItems();
-    _saveSettings();
+    _list.save();
+    _settings.save();
   }
 
   // Снять пометки у всего списка
@@ -292,11 +262,11 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  for (var item in _items) {
+                  for (var item in _list.items) {
                     item.isChecked = false;
                   }
                 });
-                _saveItems();
+                _list.save();
                 Navigator.pop(context);
                 _showInfoMessage(localizations.uncheckedAll);
               },
@@ -326,11 +296,11 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  _items.clear();
-                  _selectedIndex = null;
+                  _list.items.clear();
+                  _settings.selectedIndex = null;
                 });
-                _saveItems();
-                _saveSettings();
+                _list.save();
+                _settings.save();
                 Navigator.pop(context);
                 _showInfoMessage(localizations.listCleared);
               },
@@ -391,24 +361,24 @@ class _MyHomePageState extends State<MyHomePage> {
   // Обработка перетаскивания
   void _onReorderItem(int oldIndex, int newIndex) {
     setState(() {
-      final ChecklistItem item = _items.removeAt(oldIndex);
-      _items.insert(newIndex, item);
+      final ChecklistItem item = _list.items.removeAt(oldIndex);
+      _list.items.insert(newIndex, item);
       
-      if (_selectedIndex != null) {
-        if (_selectedIndex == oldIndex) {
-          _selectedIndex = newIndex;
+      if (_settings.selectedIndex != null) {
+        if (_settings.selectedIndex == oldIndex) {
+          _settings.selectedIndex = newIndex;
         } else {
-          final int selected = _selectedIndex!;
+          final int selected = _settings.selectedIndex!;
           if (oldIndex < selected && newIndex >= selected) {
-            _selectedIndex = selected - 1;
+            _settings.selectedIndex = selected - 1;
           } else if (oldIndex > selected && newIndex <= selected) {
-            _selectedIndex = selected + 1;
+            _settings.selectedIndex = selected + 1;
           }
         }
       }
     });
-    _saveItems();
-    _saveSettings();
+    _list.save();
+    _settings.save();
   }
 
   // Основной вид со списком
@@ -416,7 +386,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final localizations = AppLocalizations.of(context)!;
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
-        : _items.isEmpty
+        : _list.items.isEmpty
             ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -467,13 +437,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: ReorderableListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   onReorderItem: _onReorderItem,
-                  itemCount: _items.length,
+                  itemCount: _list.items.length,
                   proxyDecorator: (child, index, animation) {
                     return child;
                   },
                   itemBuilder: (context, index) {
-                    final item = _items[index];
-                    final isSelected = _selectedIndex == index;
+                    final item = _list.items[index];
+                    final isSelected = _settings.selectedIndex == index;
                     
                     return Card(
                       key: ValueKey(item.name + index.toString()),
@@ -499,7 +469,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         title: Text(
                           item.name,
                           style: TextStyle(
-                            fontSize: _fontSize,
+                            fontSize: _settings.fontSize,
                             decoration: item.isChecked
                                 ? TextDecoration.lineThrough
                                 : TextDecoration.none,
@@ -572,7 +542,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, size: 40),
-                      onPressed: _fontSize > 10 ? _decreaseFontSize : null,
+                      onPressed: _settings.fontSize > 10 ? _decreaseFontSize : null,
                       tooltip: localizations.decrease,
                     ),
                     const SizedBox(width: 20),
@@ -583,7 +553,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${_fontSize.toInt()}',
+                        '${_settings.fontSize.toInt()}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -594,7 +564,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     const SizedBox(width: 20),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, size: 40),
-                      onPressed: _fontSize < 40 ? _increaseFontSize : null,
+                      onPressed: _settings.fontSize < 40 ? _increaseFontSize : null,
                       tooltip: localizations.increase,
                     ),
                   ],
@@ -602,7 +572,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    '${localizations.fontSize}: ${_fontSize.toInt()} px',
+                    '${localizations.fontSize}: ${_settings.fontSize.toInt()} px',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
@@ -614,7 +584,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Text(
                     localizations.exampleText,
                     style: TextStyle(
-                      fontSize: _fontSize,
+                      fontSize: _settings.fontSize,
                       color: Colors.black,
                     ),
                   ),
@@ -648,7 +618,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, size: 40),
-                      onPressed: _titleFontSize > 20 ? _decreaseTitleFontSize : null,
+                      onPressed: _settings.titleFontSize > 20 ? _decreaseTitleFontSize : null,
                       tooltip: localizations.decrease,
                     ),
                     const SizedBox(width: 20),
@@ -659,7 +629,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${_titleFontSize.toInt()}',
+                        '${_settings.titleFontSize.toInt()}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -670,7 +640,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     const SizedBox(width: 20),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, size: 40),
-                      onPressed: _titleFontSize < 40 ? _increaseTitleFontSize : null,
+                      onPressed: _settings.titleFontSize < 40 ? _increaseTitleFontSize : null,
                       tooltip: localizations.increase,
                     ),
                   ],
@@ -678,7 +648,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    '${localizations.fontSize}: ${_titleFontSize.toInt()} px',
+                    '${localizations.fontSize}: ${_settings.titleFontSize.toInt()} px',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
@@ -690,7 +660,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   child: Text(
                     localizations.exampleTitle,
                     style: TextStyle(
-                      fontSize: _titleFontSize,
+                      fontSize: _settings.titleFontSize,
                       color: Colors.black,
                     ),
                   ),
@@ -769,7 +739,7 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(
           _currentPageIndex == 0 ? localizations.list : '',
           style: TextStyle(
-            fontSize: _titleFontSize,
+            fontSize: _settings.titleFontSize,
           ),
         ),
         actions: [
@@ -777,12 +747,12 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_currentPageIndex == 0) ...[
             IconButton(
               icon: const Icon(Icons.check_box_outline_blank),
-              onPressed: _items.isEmpty ? null : _uncheckAllItems,
+              onPressed: _list.items.isEmpty ? null : _uncheckAllItems,
               tooltip: localizations.uncheckAllTooltip,
             ),
             IconButton(
               icon: const Icon(Icons.delete_sweep, color: Colors.red),
-              onPressed: _items.isEmpty ? null : _clearAllItems,
+              onPressed: _list.items.isEmpty ? null : _clearAllItems,
               tooltip: localizations.clearAllTooltip,
             ),
           ],

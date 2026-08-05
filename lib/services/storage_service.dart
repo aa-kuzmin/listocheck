@@ -1,7 +1,6 @@
 ﻿import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:yaml/yaml.dart';
-import '../l10n/generated/app_localizations.dart';
 import '../utils/errors.dart';
 
 class StorageService {
@@ -17,7 +16,7 @@ class StorageService {
   }
 
   // Чтение YAML из файла
-  Future<Result<Map<dynamic, dynamic>?>?> readYamlFile(String fileName) async {
+  Future<Result> readYamlFile(String fileName) async {
     try {
       final filePath = await _getFilePath(fileName);
       final file = File(filePath);
@@ -26,16 +25,15 @@ class StorageService {
         final contents = await file.readAsString();
         return Success(loadYaml(contents) as Map<dynamic, dynamic>?);
       }
-      return null;
+      return Success(null);
     } catch (e) {
       //_showErrorMessage(localizations?.errLoadSettings ?? 'Error loading settings');
-      return null;
+      return Failure(AppError.errLoadSettings);
     }
   }
 
   // Запись YAML в файл
   Future<Result> writeYamlFile(String fileName, Map<String, dynamic> data) async {
-    final AppLocalizations? localizations = AppLocalizations.of(context);
     try {
       final filePath = await _getFilePath(fileName);
       final file = File(filePath);
@@ -44,10 +42,9 @@ class StorageService {
       String yamlString = _mapToYaml(data);
       await file.writeAsString(yamlString);
     } catch (e) {
-      return Result.errLoadSettings;
-      //_showErrorMessage(localizations?.errSaveSettings ?? 'Error saving settings');
+      return Failure(AppError.errSaveSettings);
     }
-    return Result.Success;
+    return Success(null);
   }
 
   // Преобразование Map в YAML строку
