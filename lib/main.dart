@@ -9,6 +9,33 @@ import 'services/list_service.dart';
 import 'utils/errors.dart';
 
 void main() {
+
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Принудительно показываем системную навигацию
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.manual,
+    overlays: [
+      SystemUiOverlay.top,    // Статус-бар
+      SystemUiOverlay.bottom, // Системная навигация
+    ],
+  );
+
+  // Настройка цветов системной панели
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      // делаем фон непрозрачным белым
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarDividerColor: Colors.grey,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      
+      // Статус-бар тоже настраиваем
+      statusBarColor: Colors.white,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+    ),
+  );
+
   runApp(const MyApp());
 }
 
@@ -71,8 +98,6 @@ class _MyAppState extends State<MyApp> {
         debugShowCheckedModeBanner: false,
       );
     }
-
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     return MaterialApp(
       title: _locale.languageCode == 'ru' ? 'Листочек' : 'Listocheck',
@@ -710,175 +735,185 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _getCurrentPage() {
     switch (_currentPageIndex) {
       case 0:
-        return _buildListPage();
+        return SafeArea(child: _buildListPage());
       case 1:
-        return _buildSettingsPage();
+        return SafeArea(child: _buildSettingsPage());
       case 2:
-        return _buildProfilePage();
+        return SafeArea(child: _buildProfilePage());
       default:
-        return _buildListPage();
+        return SafeArea(child: _buildListPage());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(
-        leading: Builder(
-          builder: (BuildContext context) {
-            return IconButton(
-              icon: const Icon(Icons.menu),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-              tooltip: localizations.openMenu,
-            );
-          },
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarDividerColor: Colors.grey,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        appBar: AppBar(
+          leading: Builder(
+            builder: (BuildContext context) {
+              return IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                tooltip: localizations.openMenu,
+              );
+            },
+          ),
+          title: Text(
+            _currentPageIndex == 0 ? localizations.list : '',
+            style: TextStyle(
+              fontSize: _settings.titleFontSize,
+            ),
+          ),
+          actions: [
+            // Показываем кнопки только на странице списка
+            if (_currentPageIndex == 0) ...[
+              IconButton(
+                icon: const Icon(Icons.check_box_outline_blank),
+                onPressed: _list.items.isEmpty ? null : _uncheckAllItems,
+                tooltip: localizations.uncheckAllTooltip,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                onPressed: _list.items.isEmpty ? null : _clearAllItems,
+                tooltip: localizations.clearAllTooltip,
+              ),
+            ],
+          ],
         ),
-        title: Text(
-          _currentPageIndex == 0 ? localizations.list : '',
-          style: TextStyle(
-            fontSize: _settings.titleFontSize,
+        drawer: Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              DrawerHeader(
+                decoration: BoxDecoration(
+                  color: Colors.blue,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      localizations.appTitle,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      localizations.appDescription,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.list, color: Colors.blue),
+                title: Text(localizations.list),
+                selected: _currentPageIndex == 0,
+                selectedTileColor: Colors.blue.shade50,
+                onTap: () {
+                  setState(() {
+                    _currentPageIndex = 0;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.settings, color: Colors.green),
+                title: Text(localizations.settings),
+                selected: _currentPageIndex == 1,
+                selectedTileColor: Colors.blue.shade50,
+                onTap: () {
+                  setState(() {
+                    _currentPageIndex = 1;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person, color: Colors.purple),
+                title: Text(localizations.profile),
+                selected: _currentPageIndex == 2,
+                selectedTileColor: Colors.blue.shade50,
+                onTap: () {
+                  setState(() {
+                    _currentPageIndex = 2;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.info_outline, color: Colors.grey),
+                title: Text(localizations.aboutApp),
+                onTap: () {
+                  Navigator.pop(context);
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: Text(
+                          localizations.aboutApp,
+                          style: TextStyle(
+                            fontSize: 24,
+                          ),
+                          textAlign: .center,
+                        ),
+                        content: Text(
+                          localizations.aboutContentText,
+                          style: TextStyle(
+                            fontSize: 20,
+                          ),
+                          textAlign: .center,
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(localizations.close),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
           ),
         ),
-        actions: [
-          // Показываем кнопки только на странице списка
-          if (_currentPageIndex == 0) ...[
-            IconButton(
-              icon: const Icon(Icons.check_box_outline_blank),
-              onPressed: _list.items.isEmpty ? null : _uncheckAllItems,
-              tooltip: localizations.uncheckAllTooltip,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Colors.red),
-              onPressed: _list.items.isEmpty ? null : _clearAllItems,
-              tooltip: localizations.clearAllTooltip,
-            ),
-          ],
-        ],
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
+        body: _getCurrentPage(),
+        floatingActionButton: _currentPageIndex == 0
+          ? AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              transform: Matrix4.translationValues(
+                0,
+                _isFabVisible ? 0 : 120,
+                0,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    localizations.appTitle,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    localizations.appDescription,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+              child: FloatingActionButton(
+                onPressed: _showAddItemDialog,
+                child: const Icon(Icons.add),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.list, color: Colors.blue),
-              title: Text(localizations.list),
-              selected: _currentPageIndex == 0,
-              selectedTileColor: Colors.blue.shade50,
-              onTap: () {
-                setState(() {
-                  _currentPageIndex = 0;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings, color: Colors.green),
-              title: Text(localizations.settings),
-              selected: _currentPageIndex == 1,
-              selectedTileColor: Colors.blue.shade50,
-              onTap: () {
-                setState(() {
-                  _currentPageIndex = 1;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person, color: Colors.purple),
-              title: Text(localizations.profile),
-              selected: _currentPageIndex == 2,
-              selectedTileColor: Colors.blue.shade50,
-              onTap: () {
-                setState(() {
-                  _currentPageIndex = 2;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.grey),
-              title: Text(localizations.aboutApp),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text(
-                        localizations.aboutApp,
-                        style: TextStyle(
-                          fontSize: 24,
-                        ),
-                        textAlign: .center,
-                      ),
-                      content: Text(
-                        localizations.aboutContentText,
-                        style: TextStyle(
-                          fontSize: 20,
-                        ),
-                        textAlign: .center,
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(localizations.close),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: _getCurrentPage(),
-      floatingActionButton: _currentPageIndex == 0
-        ? AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            transform: Matrix4.translationValues(
-              0,
-              _isFabVisible ? 0 : 120,
-              0,
-            ),
-            child: FloatingActionButton(
-              onPressed: _showAddItemDialog,
-              child: const Icon(Icons.add),
-            ),
-          )
-        : null,
+            )
+          : null,
+      )
     );
   }
 }
