@@ -1,22 +1,30 @@
 ﻿import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:yaml/yaml.dart';
+
 import '../utils/errors.dart';
+import '../constants.dart';
 
 class StorageService {
   // Получение пути к директории приложения
-  Future<Directory> _getAppDirectory() async {
+  static Future<Directory> _getAppDirectory() async {
     return await getApplicationDocumentsDirectory();
   }
 
   // Получение полного пути к файлу
-  Future<String> _getFilePath(String fileName) async {
+  static Future<String> _getFilePath(String fileName) async {
     final dir = await _getAppDirectory();
-    return '${dir.path}/$fileName';
+    final settingsDir = Directory('${dir.path}/$settingsDirName');
+
+    if (!await settingsDir.exists()) {
+      await settingsDir.create(recursive: true);
+    }
+
+    return '${settingsDir.path}/$fileName';
   }
 
   // Чтение YAML из файла
-  Future<Result> readYamlFile(String fileName) async {
+  static Future<Result> readYamlFile(String fileName) async {
     try {
       final filePath = await _getFilePath(fileName);
       final file = File(filePath);
@@ -33,7 +41,7 @@ class StorageService {
   }
 
   // Запись YAML в файл
-  Future<Result> writeYamlFile(String fileName, Map<String, dynamic> data) async {
+  static Future<Result> writeYamlFile(String fileName, Map<String, dynamic> data) async {
     try {
       final filePath = await _getFilePath(fileName);
       final file = File(filePath);
@@ -48,7 +56,7 @@ class StorageService {
   }
 
   // Преобразование Map в YAML строку
-  String _mapToYaml(Map<String, dynamic> data, {int indent = 0}) {
+  static String _mapToYaml(Map<String, dynamic> data, {int indent = 0}) {
     final buffer = StringBuffer();
     final indentStr = '  ' * indent;
     
@@ -90,7 +98,7 @@ class StorageService {
   }
 
   // Экранирование строк для YAML
-  String _escapeYamlString(String value) {
+  static String _escapeYamlString(String value) {
     if (value.contains(':') || value.contains('#') || value.contains('\n')) {
       return '"$value"';
     }

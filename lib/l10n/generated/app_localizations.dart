@@ -149,7 +149,7 @@ abstract class AppLocalizations {
   /// No description provided for @listEmptyHint.
   ///
   /// In ru, this message translates to:
-  /// **'Нажмите на кнопку \"+\" внизу\nчтобы добавить строку\nДанные сохраняются автоматически'**
+  /// **'Нажмите на кнопку \"+\" внизу\nчтобы добавить строку\nДанные сохраняются автоматически\nСтроки можно перетаскивать'**
   String get listEmptyHint;
 
   /// No description provided for @addItem.

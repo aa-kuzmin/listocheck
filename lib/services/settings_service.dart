@@ -1,24 +1,46 @@
 ﻿import 'storage_service.dart';
+
 import '../utils/errors.dart';
 import '../constants.dart';
 
 class SettingsService {
-  double fontSize = 18.0;
-  double titleFontSize = 20.0;
-  int? selectedIndex = 0;
+  final double fontSize;
+  final double titleFontSize;
+  final int? selectedIndex;
+  final bool isLoading;
 
-  final StorageService _storage = StorageService();
+  const SettingsService({this.fontSize = defFontSize, this.titleFontSize = defTitleFontSize, this.selectedIndex = defSelectedIndex, this.isLoading = true});
 
-  // Загрузка настроек из файла
-  Future<Result> load() async {
+  SettingsService copyWith({
+    double? fontSize,
+    double? titleFontSize,
+    int? selectedIndex,
+    bool? isLoading,
+    })
+  {
+    return SettingsService(
+      fontSize: fontSize ?? this.fontSize,
+      titleFontSize: titleFontSize ?? this.titleFontSize,
+      selectedIndex: selectedIndex ?? this.selectedIndex,
+      isLoading: isLoading ?? this.isLoading,
+    );
+  }
+
+  // Загрузка настроек из файла.
+  static Future<Result> load() async {
     try {
-      final result = await _storage.readYamlFile(settingsFileName);
+      final result = await StorageService.readYamlFile(settingsFileName);
       if (result is Success) {
-        fontSize = (result.data[fontSizeKey]) ?? 18.0;
-        titleFontSize = (result.data[titleFontSizeKey]) ?? 20.0;
-        selectedIndex = (result.data[selectedIndexKey]) ?? 0;
+        final data = SettingsService(
+          fontSize : (result.data[fontSizeKey]) ?? defFontSize,
+          titleFontSize : (result.data[titleFontSizeKey]) ?? defTitleFontSize,
+          selectedIndex : (result.data[selectedIndexKey]) ?? defSelectedIndex,
+          isLoading: false
+        );
+        return Success(data);
+      } else {
+        return Failure(AppError.errLoadSettings);
       }
-      return Success(null);
     } catch (e) {
       return Failure(AppError.errLoadSettings);
     }
@@ -33,7 +55,7 @@ class SettingsService {
         titleFontSizeKey: titleFontSize,
         selectedIndexKey: selectedIndex,
       };
-      result = await _storage.writeYamlFile(settingsFileName, data);
+      result = await StorageService.writeYamlFile(settingsFileName, data);
     } catch (e) {
       return Failure(AppError.errSaveSettings);
     }
