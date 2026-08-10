@@ -41,5 +41,6 @@
   "errLoadSettings": "Error loading settings",
   "errSaveSettings": "Error saving settings",
   "errLoadList": "Error loading the list",
-  "errSaveList": "Error saving the list"
+  "errSaveList": "Error saving the list",
+  "loadingSettings": "Loading settings..."
 }

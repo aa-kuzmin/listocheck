@@ -3,6 +3,17 @@
 import '../utils/errors.dart';
 import '../constants.dart';
 
+class TempSettingsService {
+  final bool isFabVisible;
+
+  const TempSettingsService({this.isFabVisible = false});
+
+  TempSettingsService copyWith({bool? isFabVisible}) {
+    bool? isFabVisible;
+    return TempSettingsService(isFabVisible: isFabVisible ?? this.isFabVisible);
+  }
+}
+
 class SettingsService {
   final double fontSize;
   final double titleFontSize;

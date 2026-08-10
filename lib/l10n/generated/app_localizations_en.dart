@@ -135,4 +135,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errSaveList => 'Error saving the list';
+
+  @override
+  String get loadingSettings => 'Loading settings...';
 }

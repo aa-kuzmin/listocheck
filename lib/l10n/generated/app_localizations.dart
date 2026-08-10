@@ -349,6 +349,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ошибка сохранения списка'**
   String get errSaveList;
+
+  /// No description provided for @loadingSettings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка настроек...'**
+  String get loadingSettings;
 }
 
 class _AppLocalizationsDelegate

@@ -3,15 +3,15 @@ import 'package:flutter/services.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/checklist_item.dart';
 import '../services/settings_service.dart';
 import '../services/list_service.dart';
+import '../services/providers_service.dart';
+import '../models/checklist_item.dart';
 import '../utils/errors.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
-import '../services/providers_service.dart';
-
+import '../main.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -20,8 +20,8 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends ConsumerState<MyHomePage> {
-
+class _MyHomePageState extends ConsumerState<HomePage> {
+  bool _isLoading = true;
   int _currentPageIndex = 0;
 
   @override
@@ -35,35 +35,21 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   // Загрузка всех данных
   Future<void> _loadAllData() async {
-    final localizations = AppLocalizations.of(context)!;
+    final notifierSettings = ref.read(settingsProvider.notifier);
+    final notifierList = ref.read(listProvider.notifier);
 
-    var result = await settings.load();
-    if (result is Failure) {
-      _showErrorMessage(localizations.errLoadSettings);
-    } else {
-      if (result is Success && result.data != null) {
-        setState((){});
-      }
-    }
-
-    result = await list.load();
-    if (result is Failure) {
-      _showErrorMessage(localizations.errLoadList);
-    } else {
-      if (result is Success && result.data != null) {
-        setState((){});
-      }
-    }
-
+    await notifierSettings.loadSettings();
+    await notifierList.loadList();
+    
     if (mounted) {
-      ref.read(isLoadingProvider.notifier).finish();
-    };
+      setState(() {
+        _isLoading = false;
+      });
     }
-
   }
 
   // Показать сообщение об ошибке
-  void _showErrorMessage(String message) {
+/*   void _showErrorMessage(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -74,6 +60,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       );
     }
   }
+ */
 
   // Показать информационное сообщение
   void _showInfoMessage(String message) {
@@ -82,7 +69,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
         SnackBar(
           content: Text('ℹ️ $message'),
           backgroundColor: Colors.blue.shade700,
-          duration: const Duration(seconds: 2),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -90,22 +77,25 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
 
   // Добавление новой строки
   void _addItem(String name) {
+    final settings = ref.watch(settingsProvider);
+    final list = ref.watch(listProvider);
+    final listNotifier = ref.read(listProvider.notifier);
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
       if (settings.selectedIndex != null && settings.selectedIndex! < list.items.length) {
-        list.items.insert(settings.selectedIndex! + 1, ChecklistItem(name: name, isChecked: false));
-        settings.selectedIndex = settings.selectedIndex! + 1;
+        listNotifier.addItem(settings.selectedIndex! + 1, ChecklistItem(name: name, isChecked: false));
+        settingsNotifier.setSelectedIndex(settings.selectedIndex! + 1);
       } else {
-        list.items.add(ChecklistItem(name: name, isChecked: false));
-        settings.selectedIndex = list.items.length - 1;
+        listNotifier.addItem(list.items.length, ChecklistItem(name: name, isChecked: false));
+        settingsNotifier.setSelectedIndex(list.items.length - 1);
       }
     });
-    list.save();
-    settings.save();
   }
 
   // Снять пометки у всего списка
   void _uncheckAllItems() {
     final localizations = AppLocalizations.of(context)!;
+    final listNotifier = ref.read(listProvider.notifier);
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -118,16 +108,12 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
               child: Text(localizations.cancel),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () =>
                 setState(() {
-                  for (var item in list.items) {
-                    item.isChecked = false;
-                  }
-                });
-                list.save();
-                Navigator.pop(context);
-                _showInfoMessage(localizations.uncheckedAll);
-              },
+                  listNotifier.uncheckAllItems();
+                  Navigator.pop(context);
+                  _showInfoMessage(localizations.uncheckedAll);
+                }),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
               child: Text(localizations.uncheck),
             ),
@@ -140,6 +126,8 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   // Очистка всего списка
   void _clearAllItems() {
     final localizations = AppLocalizations.of(context)!;
+    final listNotifier = ref.read(listProvider.notifier);
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -154,11 +142,9 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  list.items.clear();
-                  settings.selectedIndex = null;
+                  listNotifier.clear();
+                  settingsNotifier.setSelectedIndex(null);
                 });
-                list.save();
-                settings.save();
                 Navigator.pop(context);
                 _showInfoMessage(localizations.listCleared);
               },
@@ -222,7 +208,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
       case 0:
         return SafeArea(child: ListScreen());
       case 1:
-        return SafeArea(child: SettingsScreen(settings: settings));
+        return SafeArea(child: SettingsScreen());
       case 2:
         return SafeArea(child: ProfileScreen());
       default:
@@ -233,6 +219,9 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final settings = ref.watch(settingsProvider);
+    final list = ref.watch(listProvider);
+    final tempSettings = ref.watch(tempSettingsProvider);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.white,
@@ -266,7 +255,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             if (_currentPageIndex == 0) ...[
               IconButton(
                 icon: const Icon(Icons.check_box_outline_blank),
-                onPressed: list.items.isEmpty ? null : _uncheckAllItems,
+                onPressed: _uncheckAllItems,
                 tooltip: localizations.uncheckAllTooltip,
               ),
               IconButton(
@@ -382,14 +371,23 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
             ],
           ),
         ),
-        body: _getCurrentPage(),
-        floatingActionButton: _currentPageIndex == 0
+        body: _isLoading
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text(localizations.loadingSettings),
+              ],
+            )
+          : _getCurrentPage(),
+        floatingActionButton: _currentPageIndex == 0 && !_isLoading
           ? AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
               transform: Matrix4.translationValues(
                 0,
-                isFabVisible ? 0 : 120,
+                tempSettings.isFabVisible ? 0 : 120,
                 0,
               ),
               child: FloatingActionButton(

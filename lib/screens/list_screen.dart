@@ -1,83 +1,84 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../l10n/generated/app_localizations.dart';
-import '../services/settings_service.dart';
-import '../services/list_service.dart';
-import '../models/checklist_item.dart';
 import '../main.dart';
 
-class ListScreen extends StatefulWidget {
+class ListScreen extends ConsumerStatefulWidget {
 
   const ListScreen({super.key});
 
   @override
-  State<ListScreen> createState() => _ListScreenState();
+  ConsumerState<ListScreen> createState() => _ListScreenState();
 }
 
-class _ListScreenState extends State<ListScreen> {
+class _ListScreenState extends ConsumerState<ListScreen> {
 
   double _lastScrollOffset = 0;
-  bool _isFabVisible = false;
 
   // Выбор строки
   void _selectItem(int index) {
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
-      settings.selectedIndex = index;
+      settingsNotifier.setSelectedIndex(index);
     });
-    settings.save();
   }
 
   // Переключение состояния чекбокса
   void _toggleItem(int index) {
+    final listNotifier = ref.read(listProvider.notifier);
     setState(() {
-      list.items[index].isChecked = !list.items[index].isChecked;
+      listNotifier.toggleItem(index);
     });
-    list.save();
   }
 
   // Удаление строки
   void _deleteItem(int index) {
+    final listNotifier = ref.read(listProvider.notifier);
+    final settings = ref.watch(settingsProvider);
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
-      list.items.removeAt(index);
+      listNotifier.deleteItem(index);
       if (settings.selectedIndex == index) {
-        settings.selectedIndex = null;
+        settingsNotifier.setSelectedIndex(null);
       } else if (settings.selectedIndex != null && settings.selectedIndex! > index) {
-        settings.selectedIndex = settings.selectedIndex! - 1;
+        settingsNotifier.setSelectedIndex(settings.selectedIndex! - 1);
       }
     });
-    list.save();
-    settings.save();
   }
 
   // Обработка перетаскивания
   void _onReorderItem(int oldIndex, int newIndex) {
+    final listNotifier = ref.read(listProvider.notifier);
+    final settings = ref.watch(settingsProvider);
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
-      final ChecklistItem item = list.items.removeAt(oldIndex);
-      list.items.insert(newIndex, item);
+      listNotifier.reorder(oldIndex, newIndex);
       
       if (settings.selectedIndex != null) {
         if (settings.selectedIndex == oldIndex) {
-          settings.selectedIndex = newIndex;
+          settingsNotifier.setSelectedIndex(newIndex);
         } else {
           final int selected = settings.selectedIndex!;
           if (oldIndex < selected && newIndex >= selected) {
-            settings.selectedIndex = selected - 1;
+            settingsNotifier.setSelectedIndex(selected - 1);
           } else if (oldIndex > selected && newIndex <= selected) {
-            settings.selectedIndex = selected + 1;
+            settingsNotifier.setSelectedIndex(selected + 1);
           }
         }
       }
     });
-    list.save();
-    settings.save();
   }
 
   @override
   // Основной вид со списком
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    return isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : list.items.isEmpty
+    final list = ref.watch(listProvider);
+    final settings = ref.watch(settingsProvider);
+    final tempSettings = ref.watch(tempSettingsProvider);
+    final tempSettingsNotifier = ref.read(tempSettingsProvider.notifier);
+    return list.items.isEmpty
             ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -107,17 +108,17 @@ class _ListScreenState extends State<ListScreen> {
                     
                     if (currentOffset > 10) {
                       if (currentOffset < _lastScrollOffset) {
-                        if (!_isFabVisible) {
-                          setState(() => _isFabVisible = true);
+                        if (!tempSettings.isFabVisible) {
+                          setState(() => tempSettingsNotifier.setIsFabVisible(true));
                         }
                       } else if (currentOffset > _lastScrollOffset) {
-                        if (_isFabVisible) {
-                          setState(() => _isFabVisible = false);
+                        if (tempSettings.isFabVisible) {
+                          setState(() => tempSettingsNotifier.setIsFabVisible(false));
                         }
                       }
                     } else {
-                      if (!_isFabVisible) {
-                        setState(() => _isFabVisible = true);
+                      if (tempSettings.isFabVisible) {
+                        setState(() => tempSettingsNotifier.setIsFabVisible(true));
                       }
                     }
                     

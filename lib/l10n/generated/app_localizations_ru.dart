@@ -137,4 +137,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errSaveList => 'Ошибка сохранения списка';
+
+  @override
+  String get loadingSettings => 'Загрузка настроек...';
 }

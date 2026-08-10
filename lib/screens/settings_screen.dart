@@ -1,55 +1,55 @@
 ﻿import 'package:flutter/material.dart';
-import '../l10n/generated/app_localizations.dart';
-import '../services/settings_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SettingsScreen extends StatefulWidget {
-  final SettingsService _settings;
-  const SettingsScreen({super.key, required this._settings});
+import '../main.dart';
+import '../l10n/generated/app_localizations.dart';
+
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState(settings: _settings);
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
-  final SettingsService _settings;
-
-  _SettingsScreenState({required this._settings});
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   // Увеличение шрифта элементов
   void _increaseFontSize() {
+    //final settings = ref.watch(settingsProvider);
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
-      _settings.fontSize = (_settings.fontSize + 2.0).clamp(10.0, 40.0);
+      settingsNotifier.incFontSize();
     });
-    _settings.save();
   }
 
   // Уменьшение шрифта элементов
   void _decreaseFontSize() {
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
-      _settings.fontSize = (_settings.fontSize - 2.0).clamp(10.0, 40.0);
+      settingsNotifier.decFontSize();
     });
-    _settings.save();
   }
 
   // Увеличение шрифта заголовка
   void _increaseTitleFontSize() {
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
-      _settings.titleFontSize = (_settings.titleFontSize + 2.0).clamp(20.0, 40.0);
+      settingsNotifier.incTitleFontSize();
     });
-    _settings.save();
   }
 
   // Уменьшение шрифта заголовка
   void _decreaseTitleFontSize() {
+    final settingsNotifier = ref.read(settingsProvider.notifier);
     setState(() {
-      _settings.titleFontSize = (_settings.titleFontSize - 2.0).clamp(20.0, 40.0);
+      settingsNotifier.decTitleFontSize();
     });
-    _settings.save();
   }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
+    final settings = ref.watch(settingsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
@@ -89,7 +89,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, size: 40),
-                      onPressed: _settings.fontSize > 10 ? _decreaseFontSize : null,
+                      onPressed: settings.fontSize > 10 ? _decreaseFontSize : null,
                       tooltip: localizations.decrease,
                     ),
                     const SizedBox(width: 20),
@@ -100,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${_settings.fontSize.toInt()}',
+                        '${settings.fontSize.toInt()}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -111,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 20),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, size: 40),
-                      onPressed: _settings.fontSize < 40 ? _increaseFontSize : null,
+                      onPressed: settings.fontSize < 40 ? _increaseFontSize : null,
                       tooltip: localizations.increase,
                     ),
                   ],
@@ -119,7 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    '${localizations.fontSize}: ${_settings.fontSize.toInt()} px',
+                    '${localizations.fontSize}: ${settings.fontSize.toInt()} px',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
@@ -131,7 +131,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Text(
                     localizations.exampleText,
                     style: TextStyle(
-                      fontSize: _settings.fontSize,
+                      fontSize: settings.fontSize,
                       color: Colors.black,
                     ),
                   ),
@@ -165,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline, size: 40),
-                      onPressed: _settings.titleFontSize > 20 ? _decreaseTitleFontSize : null,
+                      onPressed: settings.titleFontSize > 20 ? _decreaseTitleFontSize : null,
                       tooltip: localizations.decrease,
                     ),
                     const SizedBox(width: 20),
@@ -176,7 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '${_settings.titleFontSize.toInt()}',
+                        '${settings.titleFontSize.toInt()}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -187,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(width: 20),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline, size: 40),
-                      onPressed: _settings.titleFontSize < 40 ? _increaseTitleFontSize : null,
+                      onPressed: settings.titleFontSize < 40 ? _increaseTitleFontSize : null,
                       tooltip: localizations.increase,
                     ),
                   ],
@@ -195,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
-                    '${localizations.fontSize}: ${_settings.titleFontSize.toInt()} px',
+                    '${localizations.fontSize}: ${settings.titleFontSize.toInt()} px',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
@@ -207,7 +207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Text(
                     localizations.exampleTitle,
                     style: TextStyle(
-                      fontSize: _settings.titleFontSize,
+                      fontSize: settings.titleFontSize,
                       color: Colors.black,
                     ),
                   ),

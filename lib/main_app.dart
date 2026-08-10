@@ -4,15 +4,15 @@ import '../l10n/l10n.dart';
 import 'screens/home_screen.dart';
 
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
 
   @override
-  State<MainApp> createState() => _MyAppState();
+  State<MainApp> createState() => _AppState();
 
 }
 
-class _MyAppState extends State<MainApp> {
+class _AppState extends State<MainApp> {
   Locale _locale = const Locale('ru');
   bool _isLocaleLoaded = false;
 
@@ -56,8 +56,13 @@ class _MyAppState extends State<MainApp> {
     if (!_isLocaleLoaded) {
       return const MaterialApp(
         home: Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
+          body: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Loading locale...'),
+            ],
           ),
         ),
         debugShowCheckedModeBanner: false,
