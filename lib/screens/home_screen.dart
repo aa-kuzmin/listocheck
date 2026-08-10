@@ -3,11 +3,7 @@ import 'package:flutter/services.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../services/settings_service.dart';
-import '../services/list_service.dart';
-import '../services/providers_service.dart';
 import '../models/checklist_item.dart';
-import '../utils/errors.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
@@ -245,14 +241,15 @@ class _MyHomePageState extends ConsumerState<HomePage> {
             },
           ),
           title: Text(
-            _currentPageIndex == 0 ? localizations.list : '',
+            _currentPageIndex == 0 && list.items.isNotEmpty ? localizations.list : '',
             style: TextStyle(
               fontSize: settings.titleFontSize,
             ),
           ),
           actions: [
             // Показываем кнопки только на странице списка
-            if (_currentPageIndex == 0) ...[
+            // и если список не пустой
+            if (_currentPageIndex == 0 && list.items.isNotEmpty) ...[
               IconButton(
                 icon: const Icon(Icons.check_box_outline_blank),
                 onPressed: _uncheckAllItems,
@@ -372,7 +369,8 @@ class _MyHomePageState extends ConsumerState<HomePage> {
           ),
         ),
         body: _isLoading
-          ? Column(
+          ? Center(
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 CircularProgressIndicator(),
@@ -380,6 +378,7 @@ class _MyHomePageState extends ConsumerState<HomePage> {
                 Text(localizations.loadingSettings),
               ],
             )
+          )
           : _getCurrentPage(),
         floatingActionButton: _currentPageIndex == 0 && !_isLoading
           ? AnimatedContainer(
