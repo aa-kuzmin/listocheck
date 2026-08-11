@@ -17,16 +17,15 @@ class ListService {
       return ListService([]);
     }
     
-    final list = <ChecklistItem>[];
+    var list = <ChecklistItem>[];
     for (final dynamic raw in map['items']) {
-      if (raw is Map && raw is! YamlList) {
-        // Если элемент — мапа, передаем её в fromYaml модели ChecklistItem
+      if (raw is YamlMap) {
+        // Если элемент — YamlMap, передаем её в fromYaml модели ChecklistItem
         list.add(ChecklistItem.fromYaml(raw));
       } else if (raw is String) {
         // Поддержка упрощенного формата списка строк без флага checked
         list.add(ChecklistItem(name: raw, isChecked: false));
       }
-      // Остальные типы данных игнорируются или могут быть обработаны по умолчанию
     }
     return ListService(list);
   }
@@ -40,9 +39,10 @@ class ListService {
         // Используем новый фабричный конструктор вместо ручного парсинга здесь
         return Success(ListService.fromYaml(result.data as YamlMap));
       } else {
-        return result as Result<ListService>;
+        return result;
       }
     } catch (e) {
+      //print('Логируем ошибку: $e');
       return Failure(AppError.errLoadList);
     }
   }
