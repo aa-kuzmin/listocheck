@@ -23,11 +23,11 @@ class ListNotifier extends Notifier<ListService> {
     final result = await ListService.load();
 
     if (result is Success) {
-      final service = result.data as ListService;
+      final service = result.data ?? ListService([]);
       state = service;
     } else {
       // Ошибка загрузки - оставляем список пустым
-      state = const ListService([]);
+      state = ListService([]);
     }
    _isLoaded = true;
   }
@@ -92,7 +92,7 @@ class TempSettingsNotifier extends Notifier<TempSettingsService> {
   @override
   TempSettingsService build() {
     // Инициализируем начальное состояние
-    return const TempSettingsService(isFabVisible: false);
+    return const TempSettingsService(isFabVisible: true);
   }
 
   void setIsFabVisible(bool isFabVisible) {

@@ -229,7 +229,7 @@ class _MyHomePageState extends ConsumerState<HomePage> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          leading: Builder(
+          leading: _isLoading ? null : Builder(
             builder: (BuildContext context) {
               return IconButton(
                 icon: const Icon(Icons.menu),

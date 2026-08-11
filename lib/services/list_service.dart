@@ -1,29 +1,46 @@
-﻿import 'storage_service.dart';
+﻿import 'package:yaml/yaml.dart';
+
+import 'storage_service.dart';
 import '../utils/errors.dart';
 import '../models/checklist_item.dart';
 import '../constants.dart';
 
 class ListService {
-  final List<ChecklistItem> items;
+  List<ChecklistItem> items;
 
-  const ListService(this.items);
+  ListService(this.items);
 
-  // Загрузка списка из файла
+  /// Фабричный конструктор, создающий экземпляр [ListService] напрямую из YamlMap.
+  factory ListService.fromYaml(YamlMap map) {
+    // Проверяем наличие ключа 'items' и то, что он является списком
+    if (!map.containsKey('items') || map['items'] is! YamlList) {
+      return ListService([]);
+    }
+    
+    final list = <ChecklistItem>[];
+    for (final dynamic raw in map['items']) {
+      if (raw is Map && raw is! YamlList) {
+        // Если элемент — мапа, передаем её в fromYaml модели ChecklistItem
+        list.add(ChecklistItem.fromYaml(raw));
+      } else if (raw is String) {
+        // Поддержка упрощенного формата списка строк без флага checked
+        list.add(ChecklistItem(name: raw, isChecked: false));
+      }
+      // Остальные типы данных игнорируются или могут быть обработаны по умолчанию
+    }
+    return ListService(list);
+  }
+
+  // Загрузка списка из файла (статический метод)
   static Future<Result> load() async {
     try {
       final result = await StorageService.readYamlFile(listFileName);
-      
-      if (result is Success && result.data != null && result.data['items'] is List) {
-        final List<dynamic> decodedList = result.data['items'] as List;
-        final list = decodedList.map((item) {
-            if (item is Map) {
-              return ChecklistItem.fromYaml(item);
-            }
-            return ChecklistItem(name: item.toString(), isChecked: false);
-          }).toList();
-        return Success(list);
+
+      if (result is Success && result.data != null && result.data is YamlMap) {
+        // Используем новый фабричный конструктор вместо ручного парсинга здесь
+        return Success(ListService.fromYaml(result.data as YamlMap));
       } else {
-        return result;
+        return result as Result<ListService>;
       }
     } catch (e) {
       return Failure(AppError.errLoadList);
