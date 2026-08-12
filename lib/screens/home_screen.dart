@@ -380,21 +380,26 @@ class _MyHomePageState extends ConsumerState<HomePage> {
             )
           )
           : _getCurrentPage(),
-        floatingActionButton: _currentPageIndex == 0 && !_isLoading
-          ? AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              transform: Matrix4.translationValues(
-                0,
-                tempSettings.isFabVisible ? 0 : 120,
-                0,
-              ),
-              child: FloatingActionButton(
-                onPressed: _showAddItemDialog,
-                child: const Icon(Icons.add),
-              ),
-            )
-          : null,
+          floatingActionButton: _currentPageIndex == 0 && !_isLoading
+            ? Consumer(
+                builder: (context, ref, child) {
+                  final tempSettings = ref.watch(tempSettingsProvider);
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    transform: Matrix4.translationValues(
+                      0,
+                      tempSettings.isFabVisible ? 0 : 120,
+                      0,
+                    ),
+                    child: FloatingActionButton(
+                      onPressed: _showAddItemDialog,
+                      child: const Icon(Icons.add),
+                    ),
+                  );
+                },
+              )
+            : null,
       )
     );
   }

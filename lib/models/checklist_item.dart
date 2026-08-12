@@ -17,7 +17,7 @@ class ChecklistItem {
 
   factory ChecklistItem.fromYaml(Map<dynamic, dynamic> json) {
     return ChecklistItem(
-      name: json['name'] as String,
+      name: json['name'] is String ? json['name'] : json['name'].toString(),
       isChecked: json['is_checked'] as bool,
     );
   }

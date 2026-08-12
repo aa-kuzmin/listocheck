@@ -42,7 +42,7 @@ class ListService {
         return result;
       }
     } catch (e) {
-      //print('Логируем ошибку: $e');
+      print('Логируем ошибку: $e');
       return Failure(AppError.errLoadList);
     }
   }
