@@ -76,8 +76,6 @@ class _ListScreenState extends ConsumerState<ListScreen> {
     final localizations = AppLocalizations.of(context)!;
     final list = ref.watch(listProvider);
     final settings = ref.watch(settingsProvider);
-    final tempSettings = ref.watch(tempSettingsProvider);
-    final tempSettingsNotifier = ref.read(tempSettingsProvider.notifier);
     return list.items.isEmpty
             ? Center(
                 child: Column(
@@ -101,32 +99,7 @@ class _ListScreenState extends ConsumerState<ListScreen> {
                   ],
                 ),
               )
-            : NotificationListener<ScrollNotification>(
-                onNotification: (ScrollNotification notification) {
-                  if (notification is ScrollUpdateNotification) {
-                    final currentOffset = notification.metrics.pixels;
-                    
-                    if (currentOffset > 10) {
-                      if (currentOffset < _lastScrollOffset) {
-                        if (!tempSettings.isFabVisible) {
-                          setState(() => tempSettingsNotifier.setIsFabVisible(true));
-                        }
-                      } else if (currentOffset > _lastScrollOffset) {
-                        if (tempSettings.isFabVisible) {
-                          setState(() => tempSettingsNotifier.setIsFabVisible(false));
-                        }
-                      }
-                    } else {
-                      if (tempSettings.isFabVisible) {
-                        setState(() => tempSettingsNotifier.setIsFabVisible(true));
-                      }
-                    }
-                    
-                    _lastScrollOffset = currentOffset;
-                  }
-                  return true;
-                },
-                child: ReorderableListView.builder(
+            : ReorderableListView.builder(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   onReorderItem: _onReorderItem,
                   itemCount: list.items.length,
@@ -189,8 +162,7 @@ class _ListScreenState extends ConsumerState<ListScreen> {
                       ),
                     );
                   },
-                ),
-              );
+                );
   }
 
 }

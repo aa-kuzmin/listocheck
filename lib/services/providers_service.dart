@@ -88,18 +88,6 @@ class ListNotifier extends Notifier<ListService> {
 
 }
 
-class TempSettingsNotifier extends Notifier<TempSettingsService> {
-  @override
-  TempSettingsService build() {
-    // Инициализируем начальное состояние
-    return const TempSettingsService(isFabVisible: true);
-  }
-
-  void setIsFabVisible(bool isFabVisible) {
-    state = state.copyWith(isFabVisible: isFabVisible);
-  }
-}
-
 class SettingsNotifier extends Notifier<SettingsService> {
   // Флаг, чтобы не загружать дважды
   bool _isLoaded = false;

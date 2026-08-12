@@ -13,12 +13,16 @@ class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  ConsumerState<HomePage> createState() => _MyHomePageState();
+  ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends ConsumerState<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   bool _isLoading = true;
   int _currentPageIndex = 0;
+
+  // Локальное состояние для отслеживания позиции скролла и видимости FAB
+  double _lastScrollOffset = 0.0;
+  bool _isFabVisible = true;
 
   @override
   void initState() {
@@ -217,7 +221,6 @@ class _MyHomePageState extends ConsumerState<HomePage> {
     final localizations = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsProvider);
     final list = ref.watch(listProvider);
-    final tempSettings = ref.watch(tempSettingsProvider);
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.white,
@@ -369,35 +372,50 @@ class _MyHomePageState extends ConsumerState<HomePage> {
           ),
         ),
         body: _isLoading
-          ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text(localizations.loadingSettings),
-              ],
-            )
-          )
-          : _getCurrentPage(),
-          floatingActionButton: _currentPageIndex == 0 && !_isLoading
-            ? Consumer(
-                builder: (context, ref, child) {
-                  final tempSettings = ref.watch(tempSettingsProvider);
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    transform: Matrix4.translationValues(
-                      0,
-                      tempSettings.isFabVisible ? 0 : 120,
-                      0,
-                    ),
-                    child: FloatingActionButton(
-                      onPressed: _showAddItemDialog,
-                      child: const Icon(Icons.add),
-                    ),
-                  );
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(localizations.loadingSettings),
+                  ],
+                ),
+              )
+            : NotificationListener<ScrollNotification>(
+                onNotification: (ScrollNotification notification) {
+                  if (notification is ScrollUpdateNotification && _currentPageIndex == 0) {
+                    final currentOffset = notification.metrics.pixels;
+                    
+                    // Порог чувствительности, чтобы избежать дрожания у самого верха
+                    if ((currentOffset - _lastScrollOffset).abs() > 5) {
+                      if (currentOffset > _lastScrollOffset) {
+                        // Пользователь листает вниз — прячем кнопку
+                        if (_isFabVisible) {
+                          setState(() {
+                            _isFabVisible = false;
+                          });
+                        }
+                      } else if (currentOffset < _lastScrollOffset) {
+                        // Пользователь листает вверх — показываем кнопку
+                        if (!_isFabVisible) {
+                          setState(() {
+                            _isFabVisible = true;
+                          });
+                        }
+                      }
+                      _lastScrollOffset = currentOffset;
+                    }
+                  }
+                  return false; // Передаем событие дальше, чтобы ReorderableListView работал
                 },
+                child: _getCurrentPage(),
+              ),
+        floatingActionButton: _currentPageIndex == 0 && !_isLoading && _isFabVisible
+            ? FloatingActionButton(
+                tooltip: localizations.addItem,
+                onPressed: _showAddItemDialog,
+                child: const Icon(Icons.add),
               )
             : null,
       )
