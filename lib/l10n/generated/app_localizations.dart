@@ -149,7 +149,7 @@ abstract class AppLocalizations {
   /// No description provided for @listEmptyHint.
   ///
   /// In ru, this message translates to:
-  /// **'Нажмите на кнопку \"+\" внизу\nчтобы добавить строку\nДанные сохраняются автоматически'**
+  /// **'Нажмите на кнопку \"+\" внизу\nчтобы добавить строку\nДанные сохраняются автоматически\nСтроки можно перетаскивать'**
   String get listEmptyHint;
 
   /// No description provided for @addItem.
@@ -349,6 +349,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ошибка сохранения списка'**
   String get errSaveList;
+
+  /// No description provided for @loadingSettings.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка настроек...'**
+  String get loadingSettings;
 }
 
 class _AppLocalizationsDelegate

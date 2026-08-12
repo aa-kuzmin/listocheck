@@ -34,7 +34,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get listEmptyHint =>
-      'Нажмите на кнопку \"+\" внизу\nчтобы добавить строку\nДанные сохраняются автоматически';
+      'Нажмите на кнопку \"+\" внизу\nчтобы добавить строку\nДанные сохраняются автоматически\nСтроки можно перетаскивать';
 
   @override
   String get addItem => 'Добавить строку';
@@ -137,4 +137,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errSaveList => 'Ошибка сохранения списка';
+
+  @override
+  String get loadingSettings => 'Загрузка настроек...';
 }

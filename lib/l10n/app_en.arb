@@ -8,7 +8,7 @@
   "profile": "Profile",
   "list": "List",
   "listEmpty": "List is empty",
-  "listEmptyHint": "Press the \"+\" button below\nto add an item\nData is saved automatically",
+  "listEmptyHint": "Press the \"+\" button below\nto add an item\nData is saved automatically\nThe rows can be dragged",
   "addItem": "Add item",
   "enterItem": "Enter item name",
   "add": "Add",
@@ -41,5 +41,6 @@
   "errLoadSettings": "Error loading settings",
   "errSaveSettings": "Error saving settings",
   "errLoadList": "Error loading the list",
-  "errSaveList": "Error saving the list"
+  "errSaveList": "Error saving the list",
+  "loadingSettings": "Loading settings..."
 }

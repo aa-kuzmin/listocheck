@@ -34,7 +34,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get listEmptyHint =>
-      'Press the \"+\" button below\nto add an item\nData is saved automatically';
+      'Press the \"+\" button below\nto add an item\nData is saved automatically\nThe rows can be dragged';
 
   @override
   String get addItem => 'Add item';
@@ -135,4 +135,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errSaveList => 'Error saving the list';
+
+  @override
+  String get loadingSettings => 'Loading settings...';
 }
