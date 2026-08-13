@@ -7,6 +7,7 @@ import '../models/checklist_item.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
+import 'about_screen.dart';
 import '../main.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -211,6 +212,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         return SafeArea(child: SettingsScreen());
       case 2:
         return SafeArea(child: ProfileScreen());
+      case 3:
+        return SafeArea(child: AboutScreen());
       default:
         return SafeArea(child: ListScreen());
     }
@@ -335,37 +338,15 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.info_outline, color: Colors.grey),
+                leading: const Icon(Icons.info_outline, color: Colors.orange),
                 title: Text(localizations.aboutApp),
+                selected: _currentPageIndex == 3,
+                selectedTileColor: Colors.blue.shade50,
                 onTap: () {
+                  setState(() {
+                    _currentPageIndex = 3;
+                  });
                   Navigator.pop(context);
-                  showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: Text(
-                          localizations.aboutApp,
-                          style: TextStyle(
-                            fontSize: 24,
-                          ),
-                          textAlign: .center,
-                        ),
-                        content: Text(
-                          localizations.aboutContentText,
-                          style: TextStyle(
-                            fontSize: 20,
-                          ),
-                          textAlign: .center,
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(localizations.close),
-                          ),
-                        ],
-                      );
-                    },
-                  );
                 },
               ),
             ],

@@ -100,12 +100,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exampleTitle => 'Example title';
 
   @override
-  String get aboutContent => 'Minimalistic list management app.';
-
-  @override
-  String get copyright => '© Alexey A. Kuzmin';
-
-  @override
   String get version => 'Version';
 
   @override
@@ -122,7 +116,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutContentText =>
-      'LISTOCHEK v1.1.0\n\nMinimalistic list management app\n\n© ️Aleksei A. Kuzmin';
+      '\n\nMinimalistic list management app\n\n©©️ Aleksei A. Kuzmin';
 
   @override
   String get errLoadSettings => 'Error loading settings';

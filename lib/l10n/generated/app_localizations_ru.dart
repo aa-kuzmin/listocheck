@@ -102,12 +102,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get exampleTitle => 'Пример заголовка';
 
   @override
-  String get aboutContent => 'Минималистичное приложение для ведения списка.';
-
-  @override
-  String get copyright => '© Алексей А. Кузьмин';
-
-  @override
   String get version => 'Версия';
 
   @override
@@ -124,7 +118,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get aboutContentText =>
-      'ЛИСТОЧЕК v1.1.0\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин';
+      '\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин';
 
   @override
   String get errLoadSettings => 'Ошибка загрузки настроек';

@@ -14,8 +14,6 @@ class ListScreen extends ConsumerStatefulWidget {
 
 class _ListScreenState extends ConsumerState<ListScreen> {
 
-  double _lastScrollOffset = 0;
-
   // Выбор строки
   void _selectItem(int index) {
     final settingsNotifier = ref.read(settingsProvider.notifier);
@@ -110,56 +108,53 @@ class _ListScreenState extends ConsumerState<ListScreen> {
                     final item = list.items[index];
                     final isSelected = settings.selectedIndex == index;
                     
-                    return Card(
+                    return Container(
                       key: ValueKey(item.name + index.toString()),
                       margin: const EdgeInsets.symmetric(
                         horizontal: 4,
-                        vertical: 4,
+                        vertical: 2,
                       ),
-                      color: Colors.white,
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide.none,
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 0,
-                        ),
-                        leading: Checkbox(
-                          value: item.isChecked,
-                          onChanged: (_) => _toggleItem(index),
-                        ),
-                        title: Text(
-                          item.name,
-                          style: TextStyle(
-                            fontSize: settings.fontSize,
-                            decoration: item.isChecked
-                                ? TextDecoration.lineThrough
-                                : TextDecoration.none,
-                            color: isSelected 
-                                ? Colors.deepPurple
-                                : (item.isChecked ? Colors.grey : Colors.black),
-                            fontWeight: FontWeight.normal,
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 0,
                           ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.reorder,
-                              color: Colors.grey,
+                          leading: Checkbox(
+                            value: item.isChecked,
+                            onChanged: (_) => _toggleItem(index),
+                          ),
+                          title: Text(
+                            item.name,
+                            style: TextStyle(
+                              fontSize: settings.fontSize,
+                              decoration: item.isChecked
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                              color: isSelected 
+                                  ? Colors.deepPurple
+                                  : (item.isChecked ? Colors.grey : Colors.black),
+                              fontWeight: FontWeight.normal,
                             ),
-                            const SizedBox(width: 4),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.red),
-                              onPressed: () => _deleteItem(index),
-                            ),
-                          ],
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.reorder,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                onPressed: () => _deleteItem(index),
+                              ),
+                            ],
+                          ),
+                          onTap: () => _selectItem(index),
                         ),
-                        onTap: () => _selectItem(index),
-                      ),
+                      )
                     );
                   },
                 );

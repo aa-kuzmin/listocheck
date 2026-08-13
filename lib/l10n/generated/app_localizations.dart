@@ -278,18 +278,6 @@ abstract class AppLocalizations {
   /// **'Пример заголовка'**
   String get exampleTitle;
 
-  /// No description provided for @aboutContent.
-  ///
-  /// In ru, this message translates to:
-  /// **'Минималистичное приложение для ведения списка.'**
-  String get aboutContent;
-
-  /// No description provided for @copyright.
-  ///
-  /// In ru, this message translates to:
-  /// **'© Алексей А. Кузьмин'**
-  String get copyright;
-
   /// No description provided for @version.
   ///
   /// In ru, this message translates to:
@@ -323,7 +311,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutContentText.
   ///
   /// In ru, this message translates to:
-  /// **'ЛИСТОЧЕК v1.1.0\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин'**
+  /// **'\n\nМинималистичное приложение для ведения списка\n\n©️ Алексей А. Кузьмин'**
   String get aboutContentText;
 
   /// No description provided for @errLoadSettings.
