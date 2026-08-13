@@ -1,80 +1,55 @@
 ﻿import 'package:flutter/material.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/l10n.dart';
 import 'screens/home_screen.dart';
+import 'main.dart';
 
-
-class MainApp extends StatefulWidget {
+class MainApp extends ConsumerStatefulWidget {
   const MainApp({super.key});
 
   @override
-  State<MainApp> createState() => _AppState();
-
+  ConsumerState<MainApp> createState() => _AppState();
 }
 
-class _AppState extends State<MainApp> {
-  Locale _locale = const Locale('ru');
-  bool _isLocaleLoaded = false;
-
+class _AppState extends ConsumerState<MainApp> {
   @override
   void initState() {
     super.initState();
-    _loadLocale();
+    // Загружаем данные в фоне
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
-  Future<void> _loadLocale() async {
+  Future<void> _loadData() async {
     try {
-      // Получаем язык системы Android
-      final String systemLanguage = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
-
-      // Определяем язык приложения
-      String languageCode;
-      if (systemLanguage == 'ru') {
-        languageCode = 'ru';
-      } else {
-        languageCode = 'en';
-      }
+      final settingsNotifier = ref.read(settingsProvider.notifier);
+      final listNotifier = ref.read(listProvider.notifier);
       
-      if (mounted) {  // ← Проверяем, что виджет еще существует
-        setState(() {
-          _locale = Locale(languageCode);
-          _isLocaleLoaded = true;
-        });
-      }
+      await Future.wait([
+        settingsNotifier.loadSettings(),
+        listNotifier.loadList(),
+      ]);
     } catch (e) {
-      if (mounted) {  // ← Проверяем, что виджет еще существует
-        setState(() {
-          _locale = const Locale('en');
-          _isLocaleLoaded = true;
-        });
-      }
+      print('Error loading data: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isLocaleLoaded) {
-      return const MaterialApp(
-        home: Scaffold(
-          body: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Loading locale...'),
-            ],
-          ),
-        ),
-        debugShowCheckedModeBanner: false,
-      );
-    }
+    // Определяем язык системы
+    final String systemLanguage = WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+    final Locale locale = Locale(systemLanguage == 'ru' ? 'ru' : 'en');
 
     return MaterialApp(
-      title: _locale.languageCode == 'ru' ? 'Листочек' : 'Listocheck',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      title: locale.languageCode == 'ru' ? 'Листочек' : 'Listocheck',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
-      locale: _locale,
+      locale: locale,
       localizationsDelegates: L10n.localizationsDelegates,
       supportedLocales: L10n.supportedLocales,
     );

@@ -18,50 +18,14 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  bool _isLoading = true;
   int _currentPageIndex = 0;
-
-  // Локальное состояние для отслеживания позиции скролла и видимости FAB
   double _lastScrollOffset = 0.0;
   bool _isFabVisible = true;
 
   @override
   void initState() {
     super.initState();
-    // Загружаем данные после того, как дерево виджетов построено
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadAllData();
-    });  
   }
-
-  // Загрузка всех данных
-  Future<void> _loadAllData() async {
-    final notifierSettings = ref.read(settingsProvider.notifier);
-    final notifierList = ref.read(listProvider.notifier);
-
-    await notifierSettings.loadSettings();
-    await notifierList.loadList();
-    
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Показать сообщение об ошибке
-/*   void _showErrorMessage(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ $message'),
-          backgroundColor: Colors.red.shade700,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
- */
 
   // Показать информационное сообщение
   void _showInfoMessage(String message) {
@@ -235,7 +199,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          leading: _isLoading ? null : Builder(
+          leading: Builder(
             builder: (BuildContext context) {
               return IconButton(
                 icon: const Icon(Icons.menu),
@@ -352,18 +316,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
         ),
-        body: _isLoading
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text(localizations.loadingSettings),
-                  ],
-                ),
-              )
-            : NotificationListener<ScrollNotification>(
+        body: NotificationListener<ScrollNotification>(
                 onNotification: (ScrollNotification notification) {
                   if (notification is ScrollUpdateNotification && _currentPageIndex == 0) {
                     final currentOffset = notification.metrics.pixels;
@@ -392,7 +345,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 },
                 child: _getCurrentPage(),
               ),
-        floatingActionButton: _currentPageIndex == 0 && !_isLoading && _isFabVisible
+        floatingActionButton: _currentPageIndex == 0 && _isFabVisible
             ? FloatingActionButton(
                 tooltip: localizations.addItem,
                 onPressed: _showAddItemDialog,

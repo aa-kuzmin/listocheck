@@ -50,10 +50,12 @@ class SettingsService {
         );
         return Success(data);
       } else {
-        return Failure(AppError.errLoadSettings);
+        // Если файл не найден или поврежден, возвращаем настройки по умолчанию
+        return Success(const SettingsService(isLoading: false));
       }
     } catch (e) {
-      return Failure(AppError.errLoadSettings);
+      // В случае ошибки возвращаем настройки по умолчанию
+      return Success(const SettingsService(isLoading: false));
     }
   }
 
