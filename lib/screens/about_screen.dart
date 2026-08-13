@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import '../l10n/generated/app_localizations.dart';
 
 class AboutScreen extends StatefulWidget {
@@ -10,29 +9,11 @@ class AboutScreen extends StatefulWidget {
 }
 
 class _AboutScreenState extends State<AboutScreen> {
-  String _appVersion = '1.0.0';
-  String _appName = 'Checklist';
-  bool _isLoading = true;
+  static const String _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'unknown');
 
   @override
   void initState() {
     super.initState();
-    _loadPackageInfo();
-  }
-
-  Future<void> _loadPackageInfo() async {
-    try {
-      final packageInfo = await PackageInfo.fromPlatform();
-      setState(() {
-        _appVersion = packageInfo.version;
-        _appName = packageInfo.appName;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   @override
@@ -93,15 +74,6 @@ class _AboutScreenState extends State<AboutScreen> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      if (_isLoading)
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      else
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,

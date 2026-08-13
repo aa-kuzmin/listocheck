@@ -1,0 +1,12 @@
+flutter_native_splash:
+  color: "#FFFFFF"  # Белый фон
+  image: assets/splash.png
+  android: true
+  ios: true
+  web: false
+  
+  android_12:
+    color: "#FFFFFF"  # Белый фон для Android 12+
+    image: assets/splash.png
+    
+  fullscreen: true

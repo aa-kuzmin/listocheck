@@ -17,33 +17,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _increaseFontSize() {
     //final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
       settingsNotifier.incFontSize();
-    });
   }
 
   // Уменьшение шрифта элементов
   void _decreaseFontSize() {
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
       settingsNotifier.decFontSize();
-    });
   }
 
   // Увеличение шрифта заголовка
   void _increaseTitleFontSize() {
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
       settingsNotifier.incTitleFontSize();
-    });
   }
 
   // Уменьшение шрифта заголовка
   void _decreaseTitleFontSize() {
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
       settingsNotifier.decTitleFontSize();
-    });
   }
 
   @override

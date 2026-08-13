@@ -14,17 +14,17 @@ dependencies:
   intl: any
   path_provider: ^2.1.0
   yaml: ^3.1.2
-  package_info_plus: ^8.1.2
   flutter_riverpod: ^2.4.3
-  riverpod_annotation: ^2.2.0 # Рекомендуется для генерации кода
+#  riverpod_annotation: ^2.2.0 # Рекомендуется для генерации кода
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.4.0
-  riverpod_generator: ^3.0.0-dev.3 # Для генерации кода
+#  riverpod_generator: ^3.0.0-dev.3 # Для генерации кода
   riverpod_lint: ^2.3.0 # Для статического анализа
+  flutter_native_splash: ^2.3.0
 
 flutter:
   uses-material-design: true

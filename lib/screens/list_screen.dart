@@ -17,9 +17,7 @@ class _ListScreenState extends ConsumerState<ListScreen> {
   // Выбор строки
   void _selectItem(int index) {
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
       settingsNotifier.setSelectedIndex(index);
-    });
   }
 
   // Переключение состояния чекбокса
@@ -35,14 +33,12 @@ class _ListScreenState extends ConsumerState<ListScreen> {
     final listNotifier = ref.read(listProvider.notifier);
     final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
-      listNotifier.deleteItem(index);
-      if (settings.selectedIndex == index) {
-        settingsNotifier.setSelectedIndex(null);
-      } else if (settings.selectedIndex != null && settings.selectedIndex! > index) {
-        settingsNotifier.setSelectedIndex(settings.selectedIndex! - 1);
-      }
-    });
+    listNotifier.deleteItem(index);
+    if (settings.selectedIndex == index) {
+      settingsNotifier.setSelectedIndex(null);
+    } else if (settings.selectedIndex != null && settings.selectedIndex! > index) {
+      settingsNotifier.setSelectedIndex(settings.selectedIndex! - 1);
+    }
   }
 
   // Обработка перетаскивания
@@ -50,22 +46,20 @@ class _ListScreenState extends ConsumerState<ListScreen> {
     final listNotifier = ref.read(listProvider.notifier);
     final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
-      listNotifier.reorder(oldIndex, newIndex);
-      
-      if (settings.selectedIndex != null) {
-        if (settings.selectedIndex == oldIndex) {
-          settingsNotifier.setSelectedIndex(newIndex);
-        } else {
-          final int selected = settings.selectedIndex!;
-          if (oldIndex < selected && newIndex >= selected) {
-            settingsNotifier.setSelectedIndex(selected - 1);
-          } else if (oldIndex > selected && newIndex <= selected) {
-            settingsNotifier.setSelectedIndex(selected + 1);
-          }
+    listNotifier.reorder(oldIndex, newIndex);
+    
+    if (settings.selectedIndex != null) {
+      if (settings.selectedIndex == oldIndex) {
+        settingsNotifier.setSelectedIndex(newIndex);
+      } else {
+        final int selected = settings.selectedIndex!;
+        if (oldIndex < selected && newIndex >= selected) {
+          settingsNotifier.setSelectedIndex(selected - 1);
+        } else if (oldIndex > selected && newIndex <= selected) {
+          settingsNotifier.setSelectedIndex(selected + 1);
         }
       }
-    });
+    }
   }
 
   @override
