@@ -7,4 +7,4 @@ const String selectedIndexKey = 'selected_index';
 
 const double defFontSize      = 18.0;
 const double defTitleFontSize = 22.0;
-const int?   defSelectedIndex = null;
+const int    defSelectedIndex = -1;

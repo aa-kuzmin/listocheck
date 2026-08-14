@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/checklist_item.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
@@ -40,21 +39,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
-  // Добавление новой строки
-  void _addItem(String name) {
-    final settings = ref.watch(settingsProvider);
-    final list = ref.watch(listProvider);
-    final listNotifier = ref.read(listProvider.notifier);
-    final settingsNotifier = ref.read(settingsProvider.notifier);
-    setState(() {
-      if (settings.selectedIndex != null && settings.selectedIndex! < list.items.length) {
-        listNotifier.addItem(settings.selectedIndex! + 1, ChecklistItem(name: name, isChecked: false));
-        settingsNotifier.setSelectedIndex(settings.selectedIndex! + 1);
-      } else {
-        listNotifier.addItem(list.items.length, ChecklistItem(name: name, isChecked: false));
-        settingsNotifier.setSelectedIndex(list.items.length - 1);
-      }
-    });
+  // Добавление новой пустой строки
+  void _addEmptyItem() {
+    final state = listScreenKey.currentState;
+    state?.addNewEmptyItem();
   }
 
   // Снять пометки у всего списка
@@ -108,7 +96,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               onPressed: () {
                 setState(() {
                   listNotifier.clear();
-                  settingsNotifier.setSelectedIndex(null);
+                  settingsNotifier.setSelectedIndex(-1);
                 });
                 Navigator.pop(context);
                 _showInfoMessage(localizations.listCleared);
@@ -122,56 +110,15 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  // Диалог добавления строки
-  void _showAddItemDialog() {
-    final TextEditingController controller = TextEditingController();
-    final localizations = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(localizations.addItem),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: localizations.enterItem,
-              border: OutlineInputBorder(),
-            ),
-            autofocus: true,
-            onSubmitted: (value) {
-              final name = value.trim();
-              if (name.isNotEmpty) {
-                _addItem(name);
-                Navigator.pop(context);
-              }
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final name = controller.text.trim();
-                if (name.isNotEmpty) {
-                  _addItem(name);
-                  Navigator.pop(context);
-                }
-              },
-              child: Text(localizations.add),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   // Получение текущей страницы
   Widget _getCurrentPage() {
     switch (_currentPageIndex) {
       case 0:
-        return SafeArea(child: ListScreen());
+        return SafeArea(
+          child: ListScreen(
+            key: listScreenKey,
+          ),
+        );
       case 1:
         return SafeArea(child: SettingsScreen());
       case 2:
@@ -188,6 +135,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final localizations = AppLocalizations.of(context)!;
     final settings = ref.watch(settingsProvider);
     final list = ref.watch(listProvider);
+    
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.white,
@@ -317,38 +265,38 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         ),
         body: NotificationListener<ScrollNotification>(
-                onNotification: (ScrollNotification notification) {
-                  if (notification is ScrollUpdateNotification && _currentPageIndex == 0) {
-                    final currentOffset = notification.metrics.pixels;
-                    
-                    // Порог чувствительности, чтобы избежать дрожания у самого верха
-                    if ((currentOffset - _lastScrollOffset).abs() > 5) {
-                      if (currentOffset > _lastScrollOffset) {
-                        // Пользователь листает вниз — прячем кнопку
-                        if (_isFabVisible) {
-                          setState(() {
-                            _isFabVisible = false;
-                          });
-                        }
-                      } else if (currentOffset < _lastScrollOffset) {
-                        // Пользователь листает вверх — показываем кнопку
-                        if (!_isFabVisible) {
-                          setState(() {
-                            _isFabVisible = true;
-                          });
-                        }
-                      }
-                      _lastScrollOffset = currentOffset;
-                    }
+          onNotification: (ScrollNotification notification) {
+            if (notification is ScrollUpdateNotification && _currentPageIndex == 0) {
+              final currentOffset = notification.metrics.pixels;
+              
+              // Порог чувствительности, чтобы избежать дрожания у самого верха
+              if ((currentOffset - _lastScrollOffset).abs() > 5) {
+                if (currentOffset > _lastScrollOffset) {
+                  // Пользователь листает вниз — прячем кнопку
+                  if (_isFabVisible) {
+                    setState(() {
+                      _isFabVisible = false;
+                    });
                   }
-                  return false; // Передаем событие дальше, чтобы ReorderableListView работал
-                },
-                child: _getCurrentPage(),
-              ),
+                } else if (currentOffset < _lastScrollOffset) {
+                  // Пользователь листает вверх — показываем кнопку
+                  if (!_isFabVisible) {
+                    setState(() {
+                      _isFabVisible = true;
+                    });
+                  }
+                }
+                _lastScrollOffset = currentOffset;
+              }
+            }
+            return false; // Передаем событие дальше, чтобы ReorderableListView работал
+          },
+          child: _getCurrentPage(),
+        ),
         floatingActionButton: _currentPageIndex == 0 && _isFabVisible
             ? FloatingActionButton(
                 tooltip: localizations.addItem,
-                onPressed: _showAddItemDialog,
+                onPressed: _addEmptyItem,
                 child: const Icon(Icons.add),
               )
             : null,

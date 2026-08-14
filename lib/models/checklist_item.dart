@@ -1,6 +1,8 @@
-﻿// Класс для хранения одного элемента чеклиста
+﻿import 'package:flutter/foundation.dart';
+
+// Класс для хранения одного элемента чеклиста
 class ChecklistItem {
-  final String name;
+  String name;
   bool isChecked;
 
   ChecklistItem({
@@ -16,8 +18,19 @@ class ChecklistItem {
   }
 
   factory ChecklistItem.fromYaml(Map<dynamic, dynamic> json) {
+    var item = json['name'];
+
+    if (kDebugMode) {
+      if (item == Null) print('json[\'name\'] == Null');
+      if (item.runtimeType == Null) print('json[\'name\'].runtimeType == Null');
+      if (item is String) print('json[\'name\'] is String');
+      print('json[\'name\']=[$item (${item.runtimeType})]');
+    }
+
+    if (item.runtimeType == Null) item = '';
+
     return ChecklistItem(
-      name: json['name'] is String ? json['name'] : json['name'].toString(),
+      name: item is String ? item : item.toString(),
       isChecked: json['is_checked'] as bool,
     );
   }

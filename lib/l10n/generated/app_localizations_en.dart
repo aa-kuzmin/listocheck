@@ -132,4 +132,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get loadingSettings => 'Loading settings...';
+
+  @override
+  String get empty => '(empty)';
 }

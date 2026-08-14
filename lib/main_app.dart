@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/l10n.dart';
 import 'screens/home_screen.dart';
@@ -24,14 +25,19 @@ class _AppState extends ConsumerState<MainApp> {
   Future<void> _loadData() async {
     try {
       final settingsNotifier = ref.read(settingsProvider.notifier);
+      final settings = ref.read(settingsProvider);
       final listNotifier = ref.read(listProvider.notifier);
+      final list = ref.read(listProvider);
       
       await Future.wait([
         settingsNotifier.loadSettings(),
         listNotifier.loadList(),
       ]);
+      if (settings.selectedIndex > list.items.length || settings.selectedIndex < 0) {
+        settingsNotifier.setSelectedIndex(list.items.length - 1);
+      }
     } catch (e) {
-      print('Error loading data: $e');
+      if (kDebugMode) print('Error loading data: $e');
     }
   }
 
@@ -48,7 +54,7 @@ class _AppState extends ConsumerState<MainApp> {
         useMaterial3: true,
       ),
       home: const HomePage(),
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: true,
       locale: locale,
       localizationsDelegates: L10n.localizationsDelegates,
       supportedLocales: L10n.supportedLocales,

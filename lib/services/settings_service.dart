@@ -17,7 +17,7 @@ class TempSettingsService {
 class SettingsService {
   final double fontSize;
   final double titleFontSize;
-  final int? selectedIndex;
+  final int selectedIndex;
   final bool isLoading;
 
   const SettingsService({this.fontSize = defFontSize, this.titleFontSize = defTitleFontSize, this.selectedIndex = defSelectedIndex, this.isLoading = true});

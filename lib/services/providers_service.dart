@@ -70,9 +70,17 @@ class ListNotifier extends Notifier<ListService> {
   }
 
   // Добавить строку
-  void addItem(int index, ChecklistItem item) {
+  void addItem(int index, String name) {
     var list = state.items;
-    list.insert(index, item);
+    list.insert(index, ChecklistItem(name: name, isChecked: false));
+    state = ListService(list);
+    _saveList();
+  }
+
+  // Изменить строку
+  void updateItemName(int index, String newName) {
+    var list = state.items;
+    list[index].name = newName;
     state = ListService(list);
     _saveList();
   }
@@ -85,7 +93,6 @@ class ListNotifier extends Notifier<ListService> {
     state = ListService(list);
     _saveList();
   }
-
 }
 
 class SettingsNotifier extends Notifier<SettingsService> {

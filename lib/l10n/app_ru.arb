@@ -40,5 +40,6 @@
   "errSaveSettings": "Ошибка сохранения настроек",
   "errLoadList": "Ошибка загрузки списка",
   "errSaveList": "Ошибка сохранения списка",
-  "loadingSettings": "Загрузка настроек..."
+  "loadingSettings": "Загрузка настроек...",
+  "empty": "(пусто)"
 }

@@ -134,4 +134,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get loadingSettings => 'Загрузка настроек...';
+
+  @override
+  String get empty => '(пусто)';
 }

@@ -343,6 +343,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Загрузка настроек...'**
   String get loadingSettings;
+
+  /// No description provided for @empty.
+  ///
+  /// In ru, this message translates to:
+  /// **'(пусто)'**
+  String get empty;
 }
 
 class _AppLocalizationsDelegate

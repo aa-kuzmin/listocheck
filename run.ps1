@@ -9,4 +9,4 @@ $userVersion = if ($full -match '\+') { ($full -split '\+')[0] } else { $full }
 
 #Write-Host "Версия: $userVersion"
 
-flutter run --dart-define=APP_VERSION=$userVersion
+flutter run --dart-define=APP_VERSION=$userVersion #--release

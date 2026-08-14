@@ -1,4 +1,5 @@
 ﻿import 'package:yaml/yaml.dart';
+import 'package:flutter/foundation.dart';
 
 import 'storage_service.dart';
 import '../utils/errors.dart';
@@ -42,7 +43,7 @@ class ListService {
         return result;
       }
     } catch (e) {
-      print('Логируем ошибку: $e');
+      if (kDebugMode) print('Логируем ошибку: $e');
       return Failure(AppError.errLoadList);
     }
   }
