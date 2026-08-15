@@ -1,5 +1,5 @@
 ﻿const String settingsFileName = 'settings.yaml';
-const String settingsDirName  = '.listocheck';
+const String appFolderName    = '.listocheck';
 const String listFileName     = 'checklist_items.yaml';
 const String fontSizeKey      = 'font_size';
 const String titleFontSizeKey = 'title_font_size';

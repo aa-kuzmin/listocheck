@@ -71,10 +71,9 @@ class _ListScreenState extends ConsumerState<ListScreen> {
       } else {
         final settings = ref.read(settingsProvider);
         // Проверяем валидность выделенного индекса
-        if (settings.selectedIndex != null &&
-            settings.selectedIndex! >= 0 &&
-            settings.selectedIndex! < currentList.items.length) {
-          insertIndex = settings.selectedIndex! + 1;
+        if (settings.selectedIndex >= 0 &&
+            settings.selectedIndex < currentList.items.length) {
+          insertIndex = settings.selectedIndex + 1;
         } else {
           // Если выделенный индекс невалидный, вставляем в конец
           insertIndex = currentList.items.length;
@@ -151,8 +150,8 @@ class _ListScreenState extends ConsumerState<ListScreen> {
     listNotifier.deleteItem(index);
     if (settings.selectedIndex == index) {
       settingsNotifier.setSelectedIndex(null);
-    } else if (settings.selectedIndex != null && settings.selectedIndex! > index) {
-      settingsNotifier.setSelectedIndex(settings.selectedIndex! - 1);
+    } else if (settings.selectedIndex > index) {
+      settingsNotifier.setSelectedIndex(settings.selectedIndex - 1);
     }
   }
 
@@ -168,16 +167,14 @@ class _ListScreenState extends ConsumerState<ListScreen> {
     final settingsNotifier = ref.read(settingsProvider.notifier);
     listNotifier.reorder(oldIndex, newIndex);
     
-    if (settings.selectedIndex != null) {
-      if (settings.selectedIndex == oldIndex) {
-        settingsNotifier.setSelectedIndex(newIndex);
-      } else {
-        final int selected = settings.selectedIndex!;
-        if (oldIndex < selected && newIndex >= selected) {
-          settingsNotifier.setSelectedIndex(selected - 1);
-        } else if (oldIndex > selected && newIndex <= selected) {
-          settingsNotifier.setSelectedIndex(selected + 1);
-        }
+    if (settings.selectedIndex == oldIndex) {
+      settingsNotifier.setSelectedIndex(newIndex);
+    } else {
+      final int selected = settings.selectedIndex!;
+      if (oldIndex < selected && newIndex >= selected) {
+        settingsNotifier.setSelectedIndex(selected - 1);
+      } else if (oldIndex > selected && newIndex <= selected) {
+        settingsNotifier.setSelectedIndex(selected + 1);
       }
     }
   }

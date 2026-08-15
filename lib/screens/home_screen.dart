@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'profile_screen.dart';
+import 'google_account_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
 import 'about_screen.dart';
@@ -122,7 +122,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       case 1:
         return SafeArea(child: SettingsScreen());
       case 2:
-        return SafeArea(child: ProfileScreen());
+        return SafeArea(child: GoogleAccountScreen());
       case 3:
         return SafeArea(child: AboutScreen());
       default:
@@ -237,7 +237,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person, color: Colors.purple),
+                leading: const Icon(Icons.cloud, color: Colors.blue),
                 title: Text(localizations.profile),
                 selected: _currentPageIndex == 2,
                 selectedTileColor: Colors.blue.shade50,

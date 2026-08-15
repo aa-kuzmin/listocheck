@@ -14,7 +14,7 @@ class StorageService {
   // Получение полного пути к файлу
   static Future<String> _getFilePath(String fileName) async {
     final dir = await _getAppDirectory();
-    final settingsDir = Directory('${dir.path}/$settingsDirName');
+    final settingsDir = Directory('${dir.path}/$appFolderName');
 
     if (!await settingsDir.exists()) {
       await settingsDir.create(recursive: true);
@@ -47,7 +47,7 @@ class StorageService {
       final file = File(filePath);
       
       // Преобразуем Map в YAML строку вручную
-      String yamlString = _mapToYaml(data);
+      String yamlString = mapToYaml(data);
       await file.writeAsString(yamlString);
     } catch (e) {
       return Failure(AppError.errSaveSettings);
@@ -56,14 +56,14 @@ class StorageService {
   }
 
   // Преобразование Map в YAML строку
-  static String _mapToYaml(Map<String, dynamic> data, {int indent = 0}) {
+  static String mapToYaml(Map<String, dynamic> data, {int indent = 0}) {
     final buffer = StringBuffer();
     final indentStr = '  ' * indent;
     
     data.forEach((key, value) {
       if (value is Map<String, dynamic>) {
         buffer.writeln('$indentStr$key:');
-        buffer.write(_mapToYaml(value, indent: indent + 1));
+        buffer.write(mapToYaml(value, indent: indent + 1));
       } else if (value is List) {
         buffer.writeln('$indentStr$key:');
         for (var item in value) {
@@ -79,7 +79,7 @@ class StorageService {
               }
             } else {
               buffer.writeln();
-              buffer.write(_mapToYaml(item, indent: indent + 2));
+              buffer.write(mapToYaml(item, indent: indent + 2));
             }
           } else if (item is String) {
             buffer.writeln('$indentStr  - ${_escapeYamlString(item)}');
