@@ -7,7 +7,7 @@ import 'google_account_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
 import 'about_screen.dart';
-import '../main.dart';
+import '../services/providers_service.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});

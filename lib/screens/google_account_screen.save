@@ -1,6 +1,9 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+//import '../services/google_drive_service.dart';
 import '../services/providers_service.dart';
+import '../main.dart';
 
 class GoogleAccountScreen extends ConsumerStatefulWidget {
   const GoogleAccountScreen({super.key});
@@ -12,12 +15,10 @@ class GoogleAccountScreen extends ConsumerStatefulWidget {
 class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
   bool _isLoading = false;
 
-  @override
   Widget build(BuildContext context) {
     final driveService = ref.watch(googleDriveServiceProvider);
     final isAuthenticated = ref.watch(googleDriveAuthProvider);
     final account = ref.watch(googleDriveAccountProvider);
-    final initState = ref.watch(googleDriveInitializationProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -30,20 +31,6 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Показываем индикатор загрузки при восстановлении
-                if (initState.isLoading) ...[
-                  const Center(
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(),
-                        SizedBox(height: 16),
-                        Text('Восстановление сессии...'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-                
                 Text(
                   'Синхронизация с Google',
                   style: TextStyle(
@@ -61,9 +48,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Всегда показываем статус аккаунта
                 if (isAuthenticated) ...[
-                  // Аккаунт подключен
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -91,7 +76,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                                 style: TextStyle(
                                   color: Colors.green.shade600,
                                 ),
-                                overflow: TextOverflow.ellipsis,
+                                overflow: TextOverflow.ellipsis, // Обрезаем длинный email
                               ),
                             ],
                           ),
@@ -114,7 +99,6 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                     ),
                   ),
                 ] else ...[
-                  // Аккаунт не подключен
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -203,24 +187,18 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
         await listNotifier.loadList();
         await settingsNotifier.loadSettings();
         
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Аккаунт успешно подключен!')),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка подключения аккаунта')),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
+          const SnackBar(content: Text('Аккаунт успешно подключен!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка подключения аккаунта')),
         );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -241,17 +219,13 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
       listNotifier.setDriveService(null);
       settingsNotifier.setDriveService(null);
       
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Аккаунт отключен')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Аккаунт отключен')),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

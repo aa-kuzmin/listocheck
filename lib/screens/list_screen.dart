@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
-import '../main.dart';
+import '../services/providers_service.dart';
 
 // Создаем GlobalKey для доступа к состоянию ListScreen
 final listScreenKey = GlobalKey<_ListScreenState>();
