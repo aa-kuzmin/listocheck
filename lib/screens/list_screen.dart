@@ -6,16 +6,16 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/providers_service.dart';
 
 // Создаем GlobalKey для доступа к состоянию ListScreen
-final listScreenKey = GlobalKey<_ListScreenState>();
+final listScreenKey = GlobalKey<ListScreenState>();
 
 class ListScreen extends ConsumerStatefulWidget {
   const ListScreen({super.key});
 
   @override
-  ConsumerState<ListScreen> createState() => _ListScreenState();
+  ConsumerState<ListScreen> createState() => ListScreenState();
 }
 
-class _ListScreenState extends ConsumerState<ListScreen> {
+class ListScreenState extends ConsumerState<ListScreen> {
   // Храним индекс редактируемой строки
   int? _editingIndex;
   // Контроллер для текстового поля
@@ -170,7 +170,7 @@ class _ListScreenState extends ConsumerState<ListScreen> {
     if (settings.selectedIndex == oldIndex) {
       settingsNotifier.setSelectedIndex(newIndex);
     } else {
-      final int selected = settings.selectedIndex!;
+      final int selected = settings.selectedIndex;
       if (oldIndex < selected && newIndex >= selected) {
         settingsNotifier.setSelectedIndex(selected - 1);
       } else if (oldIndex > selected && newIndex <= selected) {

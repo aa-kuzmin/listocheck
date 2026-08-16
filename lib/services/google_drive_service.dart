@@ -1,19 +1,16 @@
 ﻿import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:googleapis_auth/auth_io.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:yaml/yaml.dart';
 
 import 'storage_service.dart';
+import '../constants.dart';
 
 class GoogleDriveService {
-  static const String _appFolderName = 'ListoCheck';
-  static const String _settingsFileName = 'settings.yaml';
-  static const String _listFileName = 'list.yaml';
-  static const String _authFileName = 'google_auth.json';
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [drive.DriveApi.driveAppdataScope],
@@ -37,7 +34,7 @@ class GoogleDriveService {
         if (authClient != null) {
           _driveApi = drive.DriveApi(authClient);
           _isAuthenticated = true;
-          print('Сессия Google восстановлена для: ${account.email}');
+          if (kDebugMode) print('Сессия Google восстановлена для: ${account.email}');
           return true;
         }
       }
@@ -49,15 +46,15 @@ class GoogleDriveService {
         if (authClient != null) {
           _driveApi = drive.DriveApi(authClient);
           _isAuthenticated = true;
-          print('Сессия Google восстановлена через silent sign-in для: ${signedIn.email}');
+          if (kDebugMode) print('Сессия Google восстановлена через silent sign-in для: ${signedIn.email}');
           return true;
         }
       }
       
-      print('Не удалось восстановить сессию Google');
+      if (kDebugMode) print('Не удалось восстановить сессию Google');
       return false;
     } catch (e) {
-      print('Ошибка восстановления сессии Google: $e');
+      if (kDebugMode) print('Ошибка восстановления сессии Google: $e');
       return false;
     }
   }
@@ -80,7 +77,7 @@ class GoogleDriveService {
       }
       return false;
     } catch (e) {
-      print('Ошибка входа в Google: $e');
+      if (kDebugMode) print('Ошибка входа в Google: $e');
       return false;
     }
   }
@@ -105,10 +102,10 @@ class GoogleDriveService {
       };
       
       final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$_authFileName');
+      final file = File('${dir.path}/$authFileName');
       await file.writeAsString(jsonEncode(data));
     } catch (e) {
-      print('Ошибка сохранения информации об аккаунте: $e');
+      if (kDebugMode) print('Ошибка сохранения информации об аккаунте: $e');
     }
   }
   
@@ -116,12 +113,12 @@ class GoogleDriveService {
   Future<void> _deleteAccountInfo() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$_authFileName');
+      final file = File('${dir.path}/$authFileName');
       if (await file.exists()) {
         await file.delete();
       }
     } catch (e) {
-      print('Ошибка удаления информации об аккаунте: $e');
+      if (kDebugMode) print('Ошибка удаления информации об аккаунте: $e');
     }
   }
   
@@ -129,14 +126,14 @@ class GoogleDriveService {
   Future<Map<String, dynamic>?> getSavedAccountInfo() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$_authFileName');
+      final file = File('${dir.path}/$authFileName');
       if (await file.exists()) {
         final content = await file.readAsString();
         return jsonDecode(content) as Map<String, dynamic>;
       }
       return null;
     } catch (e) {
-      print('Ошибка чтения информации об аккаунте: $e');
+      if (kDebugMode) print('Ошибка чтения информации об аккаунте: $e');
       return null;
     }
   }
@@ -152,7 +149,7 @@ class GoogleDriveService {
     
     try {
       final folderList = await _driveApi!.files.list(
-        q: "name = '$_appFolderName' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        q: "name = '$appFolderName' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
         spaces: 'appDataFolder',
       );
       
@@ -161,14 +158,14 @@ class GoogleDriveService {
       }
       
       final folder = drive.File()
-        ..name = _appFolderName
+        ..name = appFolderName
         ..mimeType = 'application/vnd.google-apps.folder'
         ..parents = ['appDataFolder'];
       
       final createdFolder = await _driveApi!.files.create(folder);
       return createdFolder.id;
     } catch (e) {
-      print('Ошибка при работе с папкой: $e');
+      if (kDebugMode) print('Ошибка при работе с папкой: $e');
       return null;
     }
   }
@@ -196,7 +193,7 @@ class GoogleDriveService {
       final fileId = fileList.files!.first.id;
       
       if (fileId == null || fileId.isEmpty) {
-        print('ID файла не найден');
+        if (kDebugMode) print('ID файла не найден');
         return null;
       }
       
@@ -220,11 +217,11 @@ class GoogleDriveService {
         
         return content;
       } else {
-        print('Неожиданный тип ответа: ${response.runtimeType}');
+        if (kDebugMode) print('Неожиданный тип ответа: ${response.runtimeType}');
         return null;
       }
     } catch (e) {
-      print('Ошибка загрузки файла $fileName: $e');
+      if (kDebugMode) print('Ошибка загрузки файла $fileName: $e');
       return null;
     }
   }
@@ -272,15 +269,15 @@ class GoogleDriveService {
       
       return true;
     } catch (e) {
-      print('Ошибка сохранения файла $fileName: $e');
+      if (kDebugMode) print('Ошибка сохранения файла $fileName: $e');
       return false;
     }
   }
   
   // Синхронизация: загружаем данные с Google Drive
   Future<Map<String, String?>> syncFromDrive() async {
-    final settingsContent = await downloadFile(_settingsFileName);
-    final listContent = await downloadFile(_listFileName);
+    final settingsContent = await downloadFile(settingsFileName);
+    final listContent = await downloadFile(listFileName);
     
     return {
       'settings': settingsContent,
@@ -290,8 +287,8 @@ class GoogleDriveService {
   
   // Синхронизация: сохраняем данные в Google Drive
   Future<bool> syncToDrive(String settingsYaml, String listYaml) async {
-    final settingsUploaded = await uploadFile(_settingsFileName, settingsYaml);
-    final listUploaded = await uploadFile(_listFileName, listYaml);
+    final settingsUploaded = await uploadFile(settingsFileName, settingsYaml);
+    final listUploaded = await uploadFile(listFileName, listYaml);
     
     return settingsUploaded && listUploaded;
   }
@@ -307,14 +304,14 @@ class GoogleDriveService {
         final listYaml = loadYaml(data['list']!);
         
         if (settingsYaml is Map) {
-          await StorageService.writeYamlFile(_settingsFileName, Map<String, dynamic>.from(settingsYaml));
+          await StorageService.writeYamlFile(settingsFileName, Map<String, dynamic>.from(settingsYaml));
         }
         if (listYaml is Map) {
-          await StorageService.writeYamlFile(_listFileName, Map<String, dynamic>.from(listYaml));
+          await StorageService.writeYamlFile(listFileName, Map<String, dynamic>.from(listYaml));
         }
         return true;
       } catch (e) {
-        print('Ошибка восстановления данных: $e');
+        if (kDebugMode) print('Ошибка восстановления данных: $e');
         return false;
       }
     }
@@ -336,7 +333,7 @@ class GoogleDriveService {
       
       return fileList.files != null && fileList.files!.isNotEmpty;
     } catch (e) {
-      print('Ошибка проверки данных: $e');
+      if (kDebugMode) print('Ошибка проверки данных: $e');
       return false;
     }
   }

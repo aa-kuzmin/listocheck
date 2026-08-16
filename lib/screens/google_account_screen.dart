@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/generated/app_localizations.dart';
+
 import '../services/providers_service.dart';
 
 class GoogleAccountScreen extends ConsumerStatefulWidget {
@@ -14,14 +16,14 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final driveService = ref.watch(googleDriveServiceProvider);
+    final localizations = AppLocalizations.of(context)!;
     final isAuthenticated = ref.watch(googleDriveAuthProvider);
     final account = ref.watch(googleDriveAccountProvider);
     final initState = ref.watch(googleDriveInitializationProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Google Аккаунт'),
+        title: Text(localizations.googleAccount),
       ),
       body: SafeArea(
         child: Padding(
@@ -32,12 +34,12 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
               children: [
                 // Показываем индикатор загрузки при восстановлении
                 if (initState.isLoading) ...[
-                  const Center(
+                  Center(
                     child: Column(
                       children: [
                         CircularProgressIndicator(),
                         SizedBox(height: 16),
-                        Text('Восстановление сессии...'),
+                        Text(localizations.sessionRestoration),
                       ],
                     ),
                   ),
@@ -45,7 +47,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                 ],
                 
                 Text(
-                  'Синхронизация с Google',
+                  localizations.googleSync,
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -53,7 +55,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Подключите ваш Google аккаунт для синхронизации списков и настроек между устройствами.',
+                  localizations.googleLink,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey.shade600,
@@ -80,14 +82,14 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Подключен аккаунт',
+                                localizations.accLinked,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.green.shade700,
                                 ),
                               ),
                               Text(
-                                account ?? 'Неизвестно',
+                                account ?? localizations.unknown,
                                 style: TextStyle(
                                   color: Colors.green.shade600,
                                 ),
@@ -105,7 +107,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _isLoading ? null : () => _disconnectAccount(context),
                       icon: const Icon(Icons.logout),
-                      label: const Text('Отключить аккаунт'),
+                      label: Text(localizations.unlinkAccount),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
@@ -122,13 +124,13 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Icon(Icons.cloud_off, color: Colors.grey),
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Аккаунт не подключен',
+                            localizations.accNotLinked,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.grey,
@@ -144,7 +146,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _isLoading ? null : () => _connectAccount(context),
                       icon: const Icon(Icons.account_circle),
-                      label: const Text('Подключить Google аккаунт'),
+                      label: Text(localizations.googleLinkAccount),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
@@ -164,7 +166,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Данные автоматически синхронизируются при сохранении',
+                          localizations.dataSyncOnSaving,
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade600,
@@ -183,6 +185,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
   }
 
   Future<void> _connectAccount(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
     try {
       final driveService = ref.read(googleDriveServiceProvider);
@@ -205,20 +208,20 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Аккаунт успешно подключен!')),
+            SnackBar(content: Text(localizations.accLinkSuccess)),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка подключения аккаунта')),
+            SnackBar(content: Text(localizations.errAccLink)),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
+          SnackBar(content: Text('${localizations.error}: $e')),
         );
       }
     } finally {
@@ -227,6 +230,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
   }
 
   Future<void> _disconnectAccount(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
     try {
       final driveService = ref.read(googleDriveServiceProvider);
@@ -243,13 +247,13 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Аккаунт отключен')),
+          SnackBar(content: Text(localizations.accUnlinked)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e')),
+          SnackBar(content: Text('${localizations.error}: $e')),
         );
       }
     } finally {

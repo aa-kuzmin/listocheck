@@ -24,7 +24,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settings => 'Настройки';
 
   @override
-  String get profile => 'Профиль';
+  String get sync => 'Синхронизация';
 
   @override
   String get list => 'Список';
@@ -137,4 +137,45 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get empty => '(пусто)';
+
+  @override
+  String get googleAccount => 'Google Аккаунт';
+
+  @override
+  String get sessionRestoration => 'Восстановление сессии...';
+
+  @override
+  String get googleSync => 'Синхронизация с Google';
+
+  @override
+  String get googleLink =>
+      'Подключите ваш Google аккаунт для синхронизации списков и настроек между устройствами.';
+
+  @override
+  String get accLinked => 'Подключен аккаунт';
+
+  @override
+  String get unknown => 'Неизвестно';
+
+  @override
+  String get unlinkAccount => 'Отключить аккаунт';
+
+  @override
+  String get accNotLinked => 'Аккаунт не подключен';
+
+  @override
+  String get accUnlinked => 'Аккаунт отключен';
+
+  @override
+  String get googleLinkAccount => 'Подключить Google аккаунт';
+
+  @override
+  String get dataSyncOnSaving =>
+      'Данные автоматически синхронизируются при сохранении';
+
+  @override
+  String get accLinkSuccess => 'Аккаунт успешно подключен!';
+
+  @override
+  String get errAccLink => 'Ошибка подключения аккаунта';
 }
