@@ -5,7 +5,7 @@
   "aboutApp": "About",
   "close": "Close",
   "settings": "Settings",
-  "profile": "Profile",
+  "sync": "Synchronization",
   "list": "List",
   "listEmpty": "List is empty",
   "listEmptyHint": "Press the \"+\" button below\nto add an item\nData is saved automatically\nThe rows can be dragged",
@@ -41,5 +41,18 @@
   "errLoadList": "Error loading the list",
   "errSaveList": "Error saving the list",
   "loadingSettings": "Loading settings...",
-  "empty": "(empty)"
+  "empty": "(empty)",
+  "googleAccount" : "Google Account",
+  "googleSessionRestoration": "Restoring session...",
+  "googleSync": "Synchronization with Google",
+  "googleLink": "Link your Google account to synchronize lists and settings across devices.",
+  "googleAccLinked": "Linked account",
+  "unknown": "Unknown",
+  "unlinkAccount": "Unlink account",
+  "accNotLinked": "The account is not linked",
+  "accUnlinked": "The account is unlinked",
+  "googleLinkAccount": "Link a Google account",
+  "dataSyncOnSaving": "The data is automatically synchronized upon saving",
+  "accLinkSuccess": "The account has been successfully linked!",
+  "errAccLink": "Account linking error"
 }

@@ -128,11 +128,11 @@ abstract class AppLocalizations {
   /// **'Настройки'**
   String get settings;
 
-  /// No description provided for @profile.
+  /// No description provided for @sync.
   ///
   /// In ru, this message translates to:
-  /// **'Профиль'**
-  String get profile;
+  /// **'Синхронизация'**
+  String get sync;
 
   /// No description provided for @list.
   ///
@@ -349,6 +349,84 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'(пусто)'**
   String get empty;
+
+  /// No description provided for @googleAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Google Аккаунт'**
+  String get googleAccount;
+
+  /// No description provided for @sessionRestoration.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановление сессии...'**
+  String get sessionRestoration;
+
+  /// No description provided for @googleSync.
+  ///
+  /// In ru, this message translates to:
+  /// **'Синхронизация с Google'**
+  String get googleSync;
+
+  /// No description provided for @googleLink.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключите ваш Google аккаунт для синхронизации списков и настроек между устройствами.'**
+  String get googleLink;
+
+  /// No description provided for @accLinked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключен аккаунт'**
+  String get accLinked;
+
+  /// No description provided for @unknown.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неизвестно'**
+  String get unknown;
+
+  /// No description provided for @unlinkAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отключить аккаунт'**
+  String get unlinkAccount;
+
+  /// No description provided for @accNotLinked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аккаунт не подключен'**
+  String get accNotLinked;
+
+  /// No description provided for @accUnlinked.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аккаунт отключен'**
+  String get accUnlinked;
+
+  /// No description provided for @googleLinkAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подключить Google аккаунт'**
+  String get googleLinkAccount;
+
+  /// No description provided for @dataSyncOnSaving.
+  ///
+  /// In ru, this message translates to:
+  /// **'Данные автоматически синхронизируются при сохранении'**
+  String get dataSyncOnSaving;
+
+  /// No description provided for @accLinkSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Аккаунт успешно подключен!'**
+  String get accLinkSuccess;
+
+  /// No description provided for @errAccLink.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка подключения аккаунта'**
+  String get errAccLink;
 }
 
 class _AppLocalizationsDelegate

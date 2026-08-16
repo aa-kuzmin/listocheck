@@ -1,14 +1,45 @@
 ﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:listocheck/models/checklist_item.dart';
 
-//import '../main.dart';
 import 'settings_service.dart';
 import 'list_service.dart';
 import '../constants.dart';
 import '../utils/errors.dart';
+import 'google_drive_service.dart';
+
+final settingsProvider = NotifierProvider<SettingsNotifier, SettingsService>(() => SettingsNotifier());
+final listProvider = NotifierProvider<ListNotifier, ListService>(() => ListNotifier());
+
+final googleDriveServiceProvider = Provider<GoogleDriveService>((ref) => GoogleDriveService());
+final googleDriveAuthProvider = StateProvider<bool>((ref) => false);
+final googleDriveAccountProvider = StateProvider<String?>((ref) => null);
+
+final googleDriveInitializationProvider = FutureProvider<bool>((ref) async {
+  final driveService = ref.watch(googleDriveServiceProvider);
+  final success = await driveService.restoreSession();
+  
+  if (success) {
+    final account = driveService.getCurrentAccount();
+    ref.read(googleDriveAccountProvider.notifier).state = account?.email;
+    ref.read(googleDriveAuthProvider.notifier).state = true;
+    
+    // Если сессия восстановлена, обновляем провайдеры
+    final listNotifier = ref.read(listProvider.notifier);
+    final settingsNotifier = ref.read(settingsProvider.notifier);
+    listNotifier.setDriveService(driveService);
+    settingsNotifier.setDriveService(driveService);
+    
+    // Загружаем данные из Drive
+    await listNotifier.loadList();
+    await settingsNotifier.loadSettings();
+  }
+  
+  return success;
+});
 
 class ListNotifier extends Notifier<ListService> {
   bool _isLoaded = false;
+  GoogleDriveService? _driveService;
 
   @override
   ListService build() {
@@ -16,25 +47,26 @@ class ListNotifier extends Notifier<ListService> {
     return ListService([]);
   }
 
+  void setDriveService(GoogleDriveService? service) {
+    _driveService = service;
+  }
+
   Future<void> loadList() async {
-    // Если уже загружено, не загружаем снова
     if (_isLoaded) return;
-
-    final result = await ListService.load();
-
+    
+    final result = await ListService.load(driveService: _driveService);
     if (result is Success) {
       final service = result.data ?? ListService([]);
       state = service;
     } else {
-      // Ошибка загрузки - оставляем список пустым
       state = ListService([]);
     }
-   _isLoaded = true;
+    _isLoaded = true;
   }
 
   // Приватный метод для сохранения
   Future<void> _saveList() async {
-    await state.save();
+    await state.save(driveService: _driveService);
   }
 
   // Очистить список
@@ -98,6 +130,8 @@ class ListNotifier extends Notifier<ListService> {
 class SettingsNotifier extends Notifier<SettingsService> {
   // Флаг, чтобы не загружать дважды
   bool _isLoaded = false;
+  
+  GoogleDriveService? _driveService;
 
   @override
   SettingsService build() {
@@ -105,26 +139,27 @@ class SettingsNotifier extends Notifier<SettingsService> {
     return const SettingsService(isLoading: true);
   }
 
+  void setDriveService(GoogleDriveService? service) {
+    _driveService = service;
+  }
+
   // Метод для загрузки настроек
   Future<void> loadSettings() async {
-    // Если уже загружено, не загружаем снова
     if (_isLoaded) return;
-
-    final result = await SettingsService.load();
-
+    
+    final result = await SettingsService.load(driveService: _driveService);
     if (result is Success) {
       final service = result.data as SettingsService;
       state = service;
     } else {
-      // Ошибка загрузки - используем значения по умолчанию
       state = const SettingsService(isLoading: false);
     }
-   _isLoaded = true;
+    _isLoaded = true;
   }
 
   // Приватный метод для сохранения
   Future<void> _saveSettings() async {
-    await state.save();
+    await state.save(driveService: _driveService);
   }
 
   // Увеличить размер шрифта

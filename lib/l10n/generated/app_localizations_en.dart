@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settings => 'Settings';
 
   @override
-  String get profile => 'Profile';
+  String get sync => 'Synchronization';
 
   @override
   String get list => 'List';
@@ -135,4 +135,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get empty => '(empty)';
+
+  @override
+  String get googleAccount => 'Google Account';
+
+  @override
+  String get sessionRestoration => 'Восстановление сессии...';
+
+  @override
+  String get googleSync => 'Synchronization with Google';
+
+  @override
+  String get googleLink =>
+      'Link your Google account to synchronize lists and settings across devices.';
+
+  @override
+  String get accLinked => 'Подключен аккаунт';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get unlinkAccount => 'Unlink account';
+
+  @override
+  String get accNotLinked => 'The account is not linked';
+
+  @override
+  String get accUnlinked => 'The account is unlinked';
+
+  @override
+  String get googleLinkAccount => 'Link a Google account';
+
+  @override
+  String get dataSyncOnSaving =>
+      'The data is automatically synchronized upon saving';
+
+  @override
+  String get accLinkSuccess => 'The account has been successfully linked!';
+
+  @override
+  String get errAccLink => 'Account linking error';
 }

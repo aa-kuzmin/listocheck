@@ -2,8 +2,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/l10n.dart';
+
 import 'screens/home_screen.dart';
-import 'main.dart';
+import 'services/providers_service.dart';
 
 class MainApp extends ConsumerStatefulWidget {
   const MainApp({super.key});
@@ -20,6 +21,13 @@ class _AppState extends ConsumerState<MainApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+    // Инициализируем Google Drive при запуске приложения
+    _initializeGoogleDrive();
+  }
+
+  Future<void> _initializeGoogleDrive() async {
+    // Ждем инициализации Google Drive
+    await ref.read(googleDriveInitializationProvider.future);
   }
 
   Future<void> _loadData() async {

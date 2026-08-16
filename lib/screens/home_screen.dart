@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'profile_screen.dart';
+import 'google_account_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
 import 'about_screen.dart';
-import '../main.dart';
+import '../services/providers_service.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -20,6 +20,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   int _currentPageIndex = 0;
   double _lastScrollOffset = 0.0;
   bool _isFabVisible = true;
+  final GlobalKey<ListScreenState> _listScreenKey = GlobalKey<ListScreenState>();
 
   @override
   void initState() {
@@ -31,9 +32,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('ℹ️ $message'),
-          backgroundColor: Colors.blue.shade700,
-          duration: const Duration(seconds: 3),
+          content: Text(message),
         ),
       );
     }
@@ -41,8 +40,45 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Добавление новой пустой строки
   void _addEmptyItem() {
-    final state = listScreenKey.currentState;
-    state?.addNewEmptyItem();
+    final state = _listScreenKey.currentState;
+    if (state != null) {
+      state.addNewEmptyItem();
+    }
+    
+    // После добавления элемента проверяем, помещается ли список на экране
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkIfListFitsScreen();
+    });
+  }
+
+  // Проверка, помещается ли список на экране
+  void _checkIfListFitsScreen() {
+    if (_currentPageIndex != 0) return;
+    
+    // Получаем контекст ListScreen
+    final context = _listScreenKey.currentContext;
+    if (context == null) return;
+    
+    // Ищем RenderBox для определения размера
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    
+    // Получаем размер экрана
+    final screenSize = MediaQuery.of(context).size;
+    final appBarHeight = AppBar().preferredSize.height;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
+    
+    // Доступная высота для списка
+    final availableHeight = screenSize.height - statusBarHeight - appBarHeight;
+    
+    // Проверяем, если список меньше доступной высоты, показываем кнопку
+    if (renderBox.size.height < availableHeight) {
+      if (!_isFabVisible) {
+        setState(() {
+          _isFabVisible = true;
+        });
+      }
+    }
   }
 
   // Снять пометки у всего списка
@@ -97,6 +133,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 setState(() {
                   listNotifier.clear();
                   settingsNotifier.setSelectedIndex(-1);
+                  _isFabVisible = true; // Показываем кнопку после очистки
                 });
                 Navigator.pop(context);
                 _showInfoMessage(localizations.listCleared);
@@ -116,13 +153,13 @@ class _HomePageState extends ConsumerState<HomePage> {
       case 0:
         return SafeArea(
           child: ListScreen(
-            key: listScreenKey,
+            key: _listScreenKey,
           ),
         );
       case 1:
         return SafeArea(child: SettingsScreen());
       case 2:
-        return SafeArea(child: ProfileScreen());
+        return SafeArea(child: GoogleAccountScreen());
       case 3:
         return SafeArea(child: AboutScreen());
       default:
@@ -165,8 +202,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
           actions: [
-            // Показываем кнопки только на странице списка
-            // и если список не пустой
             if (_currentPageIndex == 0 && list.items.isNotEmpty) ...[
               IconButton(
                 icon: const Icon(Icons.check_box_outline_blank),
@@ -220,6 +255,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   setState(() {
                     _currentPageIndex = 0;
+                    _isFabVisible = true; // При переключении на список показываем кнопку
+                    // Проверяем, помещается ли список на экране
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _checkIfListFitsScreen();
+                    });
                   });
                   Navigator.pop(context);
                 },
@@ -237,8 +277,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.person, color: Colors.purple),
-                title: Text(localizations.profile),
+                leading: const Icon(Icons.cloud, color: Colors.blue),
+                title: Text(localizations.sync),
                 selected: _currentPageIndex == 2,
                 selectedTileColor: Colors.blue.shade50,
                 onTap: () {
@@ -289,7 +329,15 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _lastScrollOffset = currentOffset;
               }
             }
-            return false; // Передаем событие дальше, чтобы ReorderableListView работал
+            
+            // При достижении конца списка проверяем, помещается ли он на экране
+            if (notification is ScrollEndNotification && _currentPageIndex == 0) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _checkIfListFitsScreen();
+              });
+            }
+            
+            return false;
           },
           child: _getCurrentPage(),
         ),
