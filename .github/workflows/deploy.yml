@@ -6,10 +6,17 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+      
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +28,10 @@ jobs:
       - run: flutter pub get
       - run: flutter build web --release
 
-      - uses: bluefireteam/flutter-gh-pages@v9
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          baseHref: /listocheck/  # ОБЯЗАТЕЛЬНО укажите ваш репозиторий!
-          webRenderer: canvaskit
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          force_orphan: true
+          base_href: /listocheck/
