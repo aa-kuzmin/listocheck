@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:reorderables/reorderables.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../services/providers_service.dart';
@@ -165,15 +166,24 @@ class ListScreenState extends ConsumerState<ListScreen> {
     final listNotifier = ref.read(listProvider.notifier);
     final settings = ref.watch(settingsProvider);
     final settingsNotifier = ref.read(settingsProvider.notifier);
-    listNotifier.reorder(oldIndex, newIndex);
     
-    if (settings.selectedIndex == oldIndex) {
-      settingsNotifier.setSelectedIndex(newIndex);
+    // Корректируем индексы для ReorderableColumn
+    int adjustedOldIndex = oldIndex;
+    int adjustedNewIndex = newIndex;
+    
+    if (newIndex > oldIndex) {
+      adjustedNewIndex = newIndex - 1;
+    }
+    
+    listNotifier.reorder(adjustedOldIndex, adjustedNewIndex);
+    
+    if (settings.selectedIndex == adjustedOldIndex) {
+      settingsNotifier.setSelectedIndex(adjustedNewIndex);
     } else {
       final int selected = settings.selectedIndex;
-      if (oldIndex < selected && newIndex >= selected) {
+      if (adjustedOldIndex < selected && adjustedNewIndex >= selected) {
         settingsNotifier.setSelectedIndex(selected - 1);
-      } else if (oldIndex > selected && newIndex <= selected) {
+      } else if (adjustedOldIndex > selected && adjustedNewIndex <= selected) {
         settingsNotifier.setSelectedIndex(selected + 1);
       }
     }
@@ -299,15 +309,24 @@ class ListScreenState extends ConsumerState<ListScreen> {
               ],
             ),
           )
-        : ReorderableListView.builder(
+        : ReorderableColumn(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            onReorderItem: _onReorderItem,
-            itemCount: list.items.length,
-            proxyDecorator: (child, index, animation) {
-              return child;
+            onReorder: _onReorderItem,
+            needsLongPressDraggable: false, // Отключаем долгое нажатие
+            buildDraggableFeedback: (context, index, child) {
+              // Используем полную ширину для перетаскиваемого элемента
+              return Material(
+                elevation: 4.0,
+                borderRadius: BorderRadius.circular(8.0),
+                child: SizedBox(
+                  width: MediaQuery.of(context).size.width,
+                  child: child,
+                ),
+              );
             },
-            itemBuilder: (context, index) {
-              final item = list.items[index];
+            children: list.items.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
               final isSelected = settings.selectedIndex == index;
               final isEditing = _editingIndex == index;
 
@@ -321,12 +340,15 @@ class ListScreenState extends ConsumerState<ListScreen> {
                   type: MaterialType.transparency,
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 4,
+                      horizontal: 8,
                       vertical: 0,
                     ),
+                    dense: true, // Уменьшаем высоту строки
                     leading: Checkbox(
                       value: item.isChecked,
                       onChanged: isEditing ? null : (_) => _toggleItem(index),
+                      visualDensity: VisualDensity.compact, // Уменьшаем размер чекбокса
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     title: isEditing
                         ? TextField(
@@ -370,20 +392,32 @@ class ListScreenState extends ConsumerState<ListScreen> {
                           IconButton(
                             icon: const Icon(Icons.check, color: Colors.green),
                             onPressed: _saveEditing,
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                           ),
                           IconButton(
                             icon: const Icon(Icons.close, color: Colors.red),
                             onPressed: _cancelEditing,
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                           ),
                         ] else ...[
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, color: Colors.blue),
                             onPressed: () => _startEditing(index),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 2),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.red),
                             onPressed: () => _deleteItem(index),
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                           ),
                         ],
                       ],
@@ -392,7 +426,7 @@ class ListScreenState extends ConsumerState<ListScreen> {
                   ),
                 ),
               );
-            },
+            }).toList(),
           );
   }
 }
