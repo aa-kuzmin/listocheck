@@ -1,7 +1,12 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../l10n/generated/app_localizations.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:universal_html/html.dart' as html;
 
+import '../l10n/generated/app_localizations.dart';
 import '../services/providers_service.dart';
 
 class GoogleAccountScreen extends ConsumerStatefulWidget {
@@ -13,6 +18,333 @@ class GoogleAccountScreen extends ConsumerStatefulWidget {
 
 class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
   bool _isLoading = false;
+  bool _isLoadingFiles = false;
+  List<Map<String, dynamic>> _driveFiles = [];
+  bool _showFiles = false;
+
+  // Загрузка списка файлов из Google Drive
+  Future<void> _loadDriveFiles() async {
+    if (_isLoadingFiles) return;
+    
+    setState(() {
+      _isLoadingFiles = true;
+      _driveFiles = [];
+    });
+    
+    try {
+      final driveService = ref.read(googleDriveServiceProvider);
+      if (!driveService.isAuthenticated) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Аккаунт не подключен')),
+          );
+        }
+        return;
+      }
+      
+      final driveApi = driveService.driveApi;
+      if (driveApi == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Drive API не доступен')),
+          );
+        }
+        return;
+      }
+      
+      final folderId = await driveService.getOrCreateAppFolder();
+      if (folderId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось найти папку приложения')),
+          );
+        }
+        return;
+      }
+      
+      final fileList = await driveApi.files.list(
+        q: "('$folderId' in parents) and trashed = false",
+        spaces: 'appDataFolder',
+      );
+      
+      if (fileList.files != null && fileList.files!.isNotEmpty) {
+        setState(() {
+          _driveFiles = fileList.files!.map((file) {
+            int size = 0;
+            final sizeStr = file.size;
+            if (sizeStr != null && sizeStr.isNotEmpty) {
+              try {
+                size = int.tryParse(sizeStr) ?? 0;
+              } catch (e) {
+                size = 0;
+              }
+            }
+            
+            return {
+              'id': file.id ?? '',
+              'name': file.name ?? 'Без имени',
+              'mimeType': file.mimeType ?? '',
+              'createdTime': file.createdTime?.toLocal().toString() ?? 'Неизвестно',
+              'modifiedTime': file.modifiedTime?.toLocal().toString() ?? 'Неизвестно',
+              'size': size,
+            };
+          }).toList();
+        });
+      } else {
+        setState(() {
+          _driveFiles = [];
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('В Drive нет файлов')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка загрузки файлов: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingFiles = false;
+        });
+      }
+    }
+  }
+
+  // Скачивание файла из Google Drive
+  Future<void> _downloadFile(String fileId, String fileName) async {
+    try {
+      final driveService = ref.read(googleDriveServiceProvider);
+      final driveApi = driveService.driveApi;
+      if (driveApi == null) return;
+      
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Скачивание файла...'),
+            ],
+          ),
+        ),
+      );
+      
+      final response = await driveApi.files.get(
+        fileId,
+        downloadOptions: drive.DownloadOptions.fullMedia,
+      );
+      
+      if (mounted) Navigator.pop(context);
+      
+      if (response is drive.Media) {
+        final List<int> data = [];
+        await for (final chunk in response.stream) {
+          data.addAll(chunk);
+        }
+        
+        if (kIsWeb) {
+          _downloadFileWeb(data, fileName);
+        } else {
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}/$fileName');
+          await file.writeAsBytes(data);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Файл "$fileName" скачан в ${file.path}')),
+            );
+          }
+        }
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Файл "$fileName" успешно скачан!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка скачивания: $e')),
+        );
+      }
+    }
+  }
+
+  // ✅ Исправленный метод скачивания в вебе
+  void _downloadFileWeb(List<int> data, String fileName) {
+    try {
+      final blob = html.Blob([data]);
+      final url = html.Url.createObjectUrl(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..download = fileName
+        ..click();
+      html.Url.revokeObjectUrl(url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка скачивания в вебе: $e')),
+        );
+      }
+    }
+  }
+
+  void _showFileDetails(Map<String, dynamic> file) {
+    final sizeInKB = (file['size'] / 1024).toStringAsFixed(2);
+    final sizeInMB = (file['size'] / (1024 * 1024)).toStringAsFixed(2);
+    final sizeStr = file['size'] > 1024 * 1024 
+        ? '$sizeInMB MB' 
+        : '$sizeInKB KB';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(file['name']),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('ID', file['id']),
+            _buildInfoRow('Тип', file['mimeType']),
+            _buildInfoRow('Размер', sizeStr),
+            _buildInfoRow('Создан', file['createdTime']),
+            _buildInfoRow('Изменён', file['modifiedTime']),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрыть'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _downloadFile(file['id'], file['name']);
+            },
+            icon: const Icon(Icons.download),
+            label: const Text('Скачать'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _connectAccount(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
+    setState(() => _isLoading = true);
+    try {
+      final driveService = ref.read(googleDriveServiceProvider);
+      final success = await driveService.signIn();
+      
+      if (success) {
+        ref.read(googleDriveAuthProvider.notifier).state = true;
+        final account = driveService.getCurrentAccount();
+        ref.read(googleDriveAccountProvider.notifier).state = account?.email;
+        
+        final listNotifier = ref.read(listProvider.notifier);
+        final settingsNotifier = ref.read(settingsProvider.notifier);
+        listNotifier.setDriveService(driveService);
+        settingsNotifier.setDriveService(driveService);
+        
+        await listNotifier.loadList();
+        await settingsNotifier.loadSettings();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(localizations.accLinkSuccess)),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(localizations.errAccLink)),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${localizations.error}: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _disconnectAccount(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
+    setState(() => _isLoading = true);
+    try {
+      final driveService = ref.read(googleDriveServiceProvider);
+      await driveService.signOut();
+      
+      ref.read(googleDriveAuthProvider.notifier).state = false;
+      ref.read(googleDriveAccountProvider.notifier).state = null;
+      
+      final listNotifier = ref.read(listProvider.notifier);
+      final settingsNotifier = ref.read(settingsProvider.notifier);
+      listNotifier.setDriveService(null);
+      settingsNotifier.setDriveService(null);
+      
+      setState(() {
+        _driveFiles = [];
+        _showFiles = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(localizations.accUnlinked)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${localizations.error}: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +356,20 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations.googleAccount),
+        actions: [
+          if (kDebugMode && isAuthenticated)
+            IconButton(
+              icon: _isLoadingFiles
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              onPressed: _isLoadingFiles ? null : _loadDriveFiles,
+              tooltip: 'Обновить список файлов',
+            ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -32,14 +378,13 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Показываем индикатор загрузки при восстановлении
                 if (initState.isLoading) ...[
-                  Center(
+                  const Center(
                     child: Column(
                       children: [
                         CircularProgressIndicator(),
                         SizedBox(height: 16),
-                        Text(localizations.sessionRestoration),
+                        Text('Восстановление сессии...'),
                       ],
                     ),
                   ),
@@ -48,7 +393,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                 
                 Text(
                   localizations.googleSync,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -63,9 +408,7 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Всегда показываем статус аккаунта
                 if (isAuthenticated) ...[
-                  // Аккаунт подключен
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -102,6 +445,145 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  
+                  if (kDebugMode) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _showFiles = !_showFiles;
+                          });
+                          if (_showFiles && _driveFiles.isEmpty) {
+                            _loadDriveFiles();
+                          }
+                        },
+                        icon: Icon(_showFiles ? Icons.visibility_off : Icons.visibility),
+                        label: Text(_showFiles ? 'Скрыть файлы Drive' : 'Показать файлы Drive'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.blue.shade300),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    if (_showFiles) ...[
+                      if (_isLoadingFiles)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (_driveFiles.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Файлы не найдены',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _driveFiles.length,
+                            separatorBuilder: (context, index) => Divider(
+                              height: 1,
+                              color: Colors.grey.shade200,
+                            ),
+                            itemBuilder: (context, index) {
+                              final file = _driveFiles[index];
+                              final isYaml = file['name'].endsWith('.yaml') || 
+                                            file['name'].endsWith('.yml');
+                              final isJson = file['name'].endsWith('.json');
+                              final iconColor = isYaml 
+                                  ? Colors.orange.shade700
+                                  : isJson
+                                      ? Colors.blue.shade700
+                                      : Colors.grey.shade600;
+                              final iconData = isYaml
+                                  ? Icons.description
+                                  : isJson
+                                      ? Icons.code
+                                      : Icons.insert_drive_file;
+                              
+                              return ListTile(
+                                leading: Icon(
+                                  iconData,
+                                  color: iconColor,
+                                  size: 28,
+                                ),
+                                title: Text(
+                                  file['name'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${(file['size'] / 1024).toStringAsFixed(1)} KB • '
+                                  '${file['modifiedTime'].substring(0, 16)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.info_outline,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => _showFileDetails(file),
+                                      tooltip: 'Информация',
+                                      constraints: const BoxConstraints(
+                                        minWidth: 32,
+                                        minHeight: 32,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.download,
+                                        color: Colors.blue,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => _downloadFile(
+                                        file['id'],
+                                        file['name'],
+                                      ),
+                                      tooltip: 'Скачать',
+                                      constraints: const BoxConstraints(
+                                        minWidth: 32,
+                                        minHeight: 32,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                  ],
+                                ),
+                                onTap: () => _showFileDetails(file),
+                              );
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                    ],
+                  ],
+                  
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -116,7 +598,6 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                     ),
                   ),
                 ] else ...[
-                  // Аккаунт не подключен
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -126,8 +607,8 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.cloud_off, color: Colors.grey),
-                        SizedBox(width: 12),
+                        const Icon(Icons.cloud_off, color: Colors.grey),
+                        const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             localizations.accNotLinked,
@@ -182,82 +663,5 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _connectAccount(BuildContext context) async {
-    final localizations = AppLocalizations.of(context)!;
-    setState(() => _isLoading = true);
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      final success = await driveService.signIn();
-      
-      if (success) {
-        ref.read(googleDriveAuthProvider.notifier).state = true;
-        final account = driveService.getCurrentAccount();
-        ref.read(googleDriveAccountProvider.notifier).state = account?.email;
-        
-        // Обновляем провайдеры с сервисом Drive
-        final listNotifier = ref.read(listProvider.notifier);
-        final settingsNotifier = ref.read(settingsProvider.notifier);
-        listNotifier.setDriveService(driveService);
-        settingsNotifier.setDriveService(driveService);
-        
-        // Перезагружаем данные из Drive
-        await listNotifier.loadList();
-        await settingsNotifier.loadSettings();
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(localizations.accLinkSuccess)),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(localizations.errAccLink)),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${localizations.error}: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _disconnectAccount(BuildContext context) async {
-    final localizations = AppLocalizations.of(context)!;
-    setState(() => _isLoading = true);
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      await driveService.signOut();
-      
-      ref.read(googleDriveAuthProvider.notifier).state = false;
-      ref.read(googleDriveAccountProvider.notifier).state = null;
-      
-      // Отключаем Drive сервис
-      final listNotifier = ref.read(listProvider.notifier);
-      final settingsNotifier = ref.read(settingsProvider.notifier);
-      listNotifier.setDriveService(null);
-      settingsNotifier.setDriveService(null);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(localizations.accUnlinked)),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${localizations.error}: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 }

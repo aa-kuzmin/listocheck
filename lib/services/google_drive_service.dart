@@ -6,7 +6,6 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:yaml/yaml.dart';
-import 'package:http/http.dart' as http;
 
 import 'storage_service.dart';
 import '../constants.dart';
@@ -17,6 +16,10 @@ class GoogleDriveService {
   drive.DriveApi? _driveApi;
   bool _isAuthenticated = false;
   GoogleSignInAccount? _currentUser;
+
+  drive.DriveApi? get driveApi => _driveApi;
+
+  Future<String?> getOrCreateAppFolder() => _getOrCreateAppFolder();
 
   GoogleDriveService() {
     _googleSignIn = GoogleSignIn(
