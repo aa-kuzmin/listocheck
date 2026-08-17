@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../l10n/generated/app_localizations.dart';
 
+import '../constants.dart';
+
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
 
@@ -9,7 +11,6 @@ class AboutScreen extends StatefulWidget {
 }
 
 class _AboutScreenState extends State<AboutScreen> {
-  static const String _appVersion = String.fromEnvironment('APP_VERSION', defaultValue: 'unknown');
 
   @override
   void initState() {
@@ -85,7 +86,7 @@ class _AboutScreenState extends State<AboutScreen> {
                             border: Border.all(color: Colors.blue.shade200),
                           ), */
                           child: Text(
-                            _appVersion,
+                            appVersion,
                             style: const TextStyle(
                               fontSize: 16,
 /*                               fontWeight: FontWeight.bold,

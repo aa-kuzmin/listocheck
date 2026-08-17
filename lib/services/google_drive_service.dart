@@ -13,6 +13,7 @@ import '../constants.dart';
 class GoogleDriveService {
   
   final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: kIsWeb ? googleWebClientId : null,
     scopes: [drive.DriveApi.driveAppdataScope],
   );
   
