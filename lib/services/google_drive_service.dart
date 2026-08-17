@@ -6,19 +6,28 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:yaml/yaml.dart';
+import 'package:http/http.dart' as http;
 
 import 'storage_service.dart';
 import '../constants.dart';
 
 class GoogleDriveService {
-  
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? googleWebClientId : null,
-    scopes: [drive.DriveApi.driveAppdataScope],
-  );
+  late final GoogleSignIn _googleSignIn;
   
   drive.DriveApi? _driveApi;
   bool _isAuthenticated = false;
+  GoogleSignInAccount? _currentUser;
+
+  GoogleDriveService() {
+    _googleSignIn = GoogleSignIn(
+      clientId: kIsWeb ? googleWebClientId : null,
+      scopes: [drive.DriveApi.driveAppdataScope],
+      // ✅ Для веба добавляем параметры
+      serverClientId: kIsWeb ? googleWebClientId : null,
+      // ✅ Принудительно запрашиваем профиль пользователя
+      hostedDomain: null,
+    );
+  }
   
   // Проверка авторизации
   bool get isAuthenticated => _isAuthenticated;
@@ -35,6 +44,7 @@ class GoogleDriveService {
         if (authClient != null) {
           _driveApi = drive.DriveApi(authClient);
           _isAuthenticated = true;
+          _currentUser = account;
           if (kDebugMode) print('Сессия Google восстановлена для: ${account.email}');
           return true;
         }
@@ -47,6 +57,7 @@ class GoogleDriveService {
         if (authClient != null) {
           _driveApi = drive.DriveApi(authClient);
           _isAuthenticated = true;
+          _currentUser = signedIn;
           if (kDebugMode) print('Сессия Google восстановлена через silent sign-in для: ${signedIn.email}');
           return true;
         }
@@ -60,15 +71,25 @@ class GoogleDriveService {
     }
   }
   
-  // Вход в Google аккаунт
+  // ✅ Вход в Google аккаунт (исправлено для веба)
   Future<bool> signIn() async {
     try {
+      // Для веба используем signIn() с дополнительной обработкой
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
+      
       if (account != null) {
         final authClient = await _googleSignIn.authenticatedClient();
         if (authClient != null) {
           _driveApi = drive.DriveApi(authClient);
           _isAuthenticated = true;
+          _currentUser = account;
+          
+          if (kDebugMode) print('Успешный вход: ${account.email}');
+          
+          // ✅ Для веба дополнительно получаем данные профиля через People API
+          if (kIsWeb) {
+            await _fetchUserProfile(account);
+          }
           
           // Сохраняем информацию об аккаунте
           await _saveAccountInfo(account);
@@ -83,11 +104,44 @@ class GoogleDriveService {
     }
   }
   
+  // ✅ Получение профиля пользователя через People API (для веба)
+  Future<void> _fetchUserProfile(GoogleSignInAccount account) async {
+    try {
+      final authClient = await _googleSignIn.authenticatedClient();
+      if (authClient == null) return;
+      
+      final response = await authClient.get(
+        Uri.parse(
+          'https://people.googleapis.com/v1/people/me?'
+          'personFields=names,emailAddresses,photos&'
+          'sources=READ_SOURCE_TYPE_PROFILE'
+        ),
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (kDebugMode) print('Профиль пользователя загружен: $data');
+        
+        // Обновляем информацию об аккаунте, если нужно
+        final names = data['names'] as List?;
+        if (names != null && names.isNotEmpty) {
+          final displayName = names.first['displayName'] ?? account.displayName;
+          // Можно сохранить более полную информацию
+        }
+      } else {
+        if (kDebugMode) print('Ошибка загрузки профиля: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) print('Ошибка получения профиля: $e');
+    }
+  }
+  
   // Выход из Google аккаунта
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     _isAuthenticated = false;
     _driveApi = null;
+    _currentUser = null;
     
     // Удаляем сохраненную информацию об аккаунте
     await _deleteAccountInfo();
@@ -141,8 +195,10 @@ class GoogleDriveService {
   
   // Получение текущего аккаунта
   GoogleSignInAccount? getCurrentAccount() {
-    return _googleSignIn.currentUser;
+    return _currentUser ?? _googleSignIn.currentUser;
   }
+  
+  // ... остальные методы (downloadFile, uploadFile и т.д.) остаются без изменений
   
   // Проверка существования папки приложения
   Future<String?> _getOrCreateAppFolder() async {
@@ -170,9 +226,6 @@ class GoogleDriveService {
       return null;
     }
   }
-  
-  // Остальные методы (downloadFile, uploadFile, syncFromDrive, syncToDrive, restoreFromDrive, hasDataInDrive)
-  // остаются без изменений...
   
   // Загрузка файла из Google Drive
   Future<String?> downloadFile(String fileName) async {
@@ -228,62 +281,57 @@ class GoogleDriveService {
   }
   
   // Сохранение файла в Google Drive
-Future<bool> uploadFile(String fileName, String content) async {
-  if (_driveApi == null) return false;
-  
-  try {
-    final folderId = await _getOrCreateAppFolder();
-    if (folderId == null) return false;
+  Future<bool> uploadFile(String fileName, String content) async {
+    if (_driveApi == null) return false;
     
-    final fileList = await _driveApi!.files.list(
-      q: "name = '$fileName' and '$folderId' in parents and trashed = false",
-      spaces: 'appDataFolder',
-    );
-    
-    final bytes = utf8.encode(content);
-    
-    if (fileList.files != null && fileList.files!.isNotEmpty) {
-      // ✅ Файл существует — обновляем его
-      final fileId = fileList.files!.first.id;
-      if (fileId != null && fileId.isNotEmpty) {
-        // Создаём объект файла без указания parents
+    try {
+      final folderId = await _getOrCreateAppFolder();
+      if (folderId == null) return false;
+      
+      final fileList = await _driveApi!.files.list(
+        q: "name = '$fileName' and '$folderId' in parents and trashed = false",
+        spaces: 'appDataFolder',
+      );
+      
+      final bytes = utf8.encode(content);
+      
+      if (fileList.files != null && fileList.files!.isNotEmpty) {
+        final fileId = fileList.files!.first.id;
+        if (fileId != null && fileId.isNotEmpty) {
+          final file = drive.File()
+            ..name = fileName;
+          
+          await _driveApi!.files.update(
+            file,
+            fileId,
+            uploadMedia: drive.Media(
+              Stream.fromIterable([bytes]),
+              bytes.length,
+            ),
+            addParents: folderId,
+            removeParents: '',
+          );
+        }
+      } else {
         final file = drive.File()
-          ..name = fileName;
+          ..name = fileName
+          ..parents = [folderId];
         
-        // Обновляем содержимое файла
-        await _driveApi!.files.update(
+        await _driveApi!.files.create(
           file,
-          fileId,
           uploadMedia: drive.Media(
             Stream.fromIterable([bytes]),
             bytes.length,
           ),
-          // ✅ Добавляем параметры для работы с parents
-          addParents: folderId,
-          removeParents: '', // Пустая строка означает, что не удаляем ни одного родителя
         );
       }
-    } else {
-      // ✅ Файл не существует — создаём новый
-      final file = drive.File()
-        ..name = fileName
-        ..parents = [folderId];
       
-      await _driveApi!.files.create(
-        file,
-        uploadMedia: drive.Media(
-          Stream.fromIterable([bytes]),
-          bytes.length,
-        ),
-      );
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('Ошибка сохранения файла $fileName: $e');
+      return false;
     }
-    
-    return true;
-  } catch (e) {
-    if (kDebugMode) print('Ошибка сохранения файла $fileName: $e');
-    return false;
   }
-}
   
   // Синхронизация: загружаем данные с Google Drive
   Future<Map<String, String?>> syncFromDrive() async {
