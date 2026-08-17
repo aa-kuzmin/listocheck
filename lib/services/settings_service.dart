@@ -107,7 +107,7 @@ class SettingsService {
       if (driveService != null && driveService.isAuthenticated) {
         // Преобразуем Map в YAML строку
         final yamlString = StorageService.mapToYaml(data);
-        final success = await driveService.uploadFile('settings.yaml', yamlString);
+        final success = await driveService.uploadFile(settingsFileName, yamlString);
         if (success) {
           if (kDebugMode) print('Настройки сохранены в Google Drive');
         } else {

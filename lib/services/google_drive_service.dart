@@ -228,52 +228,62 @@ class GoogleDriveService {
   }
   
   // Сохранение файла в Google Drive
-  Future<bool> uploadFile(String fileName, String content) async {
-    if (_driveApi == null) return false;
+Future<bool> uploadFile(String fileName, String content) async {
+  if (_driveApi == null) return false;
+  
+  try {
+    final folderId = await _getOrCreateAppFolder();
+    if (folderId == null) return false;
     
-    try {
-      final folderId = await _getOrCreateAppFolder();
-      if (folderId == null) return false;
-      
-      final fileList = await _driveApi!.files.list(
-        q: "name = '$fileName' and '$folderId' in parents and trashed = false",
-        spaces: 'appDataFolder',
-      );
-      
-      final file = drive.File()
-        ..name = fileName
-        ..parents = [folderId];
-      
-      final bytes = utf8.encode(content);
-      
-      if (fileList.files != null && fileList.files!.isNotEmpty) {
-        final fileId = fileList.files!.first.id;
-        if (fileId != null && fileId.isNotEmpty) {
-          await _driveApi!.files.update(
-            file,
-            fileId,
-            uploadMedia: drive.Media(
-              Stream.fromIterable([bytes]),
-              bytes.length,
-            ),
-          );
-        }
-      } else {
-        await _driveApi!.files.create(
+    final fileList = await _driveApi!.files.list(
+      q: "name = '$fileName' and '$folderId' in parents and trashed = false",
+      spaces: 'appDataFolder',
+    );
+    
+    final bytes = utf8.encode(content);
+    
+    if (fileList.files != null && fileList.files!.isNotEmpty) {
+      // ✅ Файл существует — обновляем его
+      final fileId = fileList.files!.first.id;
+      if (fileId != null && fileId.isNotEmpty) {
+        // Создаём объект файла без указания parents
+        final file = drive.File()
+          ..name = fileName;
+        
+        // Обновляем содержимое файла
+        await _driveApi!.files.update(
           file,
+          fileId,
           uploadMedia: drive.Media(
             Stream.fromIterable([bytes]),
             bytes.length,
           ),
+          // ✅ Добавляем параметры для работы с parents
+          addParents: folderId,
+          removeParents: '', // Пустая строка означает, что не удаляем ни одного родителя
         );
       }
+    } else {
+      // ✅ Файл не существует — создаём новый
+      final file = drive.File()
+        ..name = fileName
+        ..parents = [folderId];
       
-      return true;
-    } catch (e) {
-      if (kDebugMode) print('Ошибка сохранения файла $fileName: $e');
-      return false;
+      await _driveApi!.files.create(
+        file,
+        uploadMedia: drive.Media(
+          Stream.fromIterable([bytes]),
+          bytes.length,
+        ),
+      );
     }
+    
+    return true;
+  } catch (e) {
+    if (kDebugMode) print('Ошибка сохранения файла $fileName: $e');
+    return false;
   }
+}
   
   // Синхронизация: загружаем данные с Google Drive
   Future<Map<String, String?>> syncFromDrive() async {

@@ -16,7 +16,7 @@ class ListScreen extends ConsumerStatefulWidget {
   ConsumerState<ListScreen> createState() => ListScreenState();
 }
 
-class ListScreenState extends ConsumerState<ListScreen> {
+class ListScreenState extends ConsumerState<ListScreen> with AutomaticKeepAliveClientMixin {
   // Храним индекс редактируемой строки
   int? _editingIndex;
   // Контроллер для текстового поля
@@ -24,6 +24,13 @@ class ListScreenState extends ConsumerState<ListScreen> {
   
   // Флаг для предотвращения множественных вызовов
   bool _isAdding = false;
+  
+  // ✅ Добавляем контроллер для прокрутки
+  final ScrollController _scrollController = ScrollController();
+
+  // ✅ Сохраняем состояние при переключении вкладок
+  @override
+  bool get wantKeepAlive => true;
 
   // Публичный метод для добавления новой пустой строки
   void addNewEmptyItem() {
@@ -263,11 +270,14 @@ class ListScreenState extends ConsumerState<ListScreen> {
   @override
   void dispose() {
     _textController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // ✅ Важно для AutomaticKeepAliveClientMixin
+    
     final localizations = AppLocalizations.of(context)!;
     final list = ref.watch(listProvider);
     final settings = ref.watch(settingsProvider);
@@ -309,124 +319,128 @@ class ListScreenState extends ConsumerState<ListScreen> {
               ],
             ),
           )
-        : ReorderableColumn(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            onReorder: _onReorderItem,
-            needsLongPressDraggable: false, // Отключаем долгое нажатие
-            buildDraggableFeedback: (context, index, child) {
-              // Используем полную ширину для перетаскиваемого элемента
-              return Material(
-                elevation: 4.0,
-                borderRadius: BorderRadius.circular(8.0),
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  child: child,
-                ),
-              );
-            },
-            children: list.items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isSelected = settings.selectedIndex == index;
-              final isEditing = _editingIndex == index;
+        // ✅ Оборачиваем в PrimaryScrollController для обеспечения контекста
+        : PrimaryScrollController(
+            controller: _scrollController,
+            child: ReorderableColumn(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              onReorder: _onReorderItem,
+              needsLongPressDraggable: true,
+              buildDraggableFeedback: (context, index, child) {
+                // Используем полную ширину для перетаскиваемого элемента
+                return Material(
+                  elevation: 4.0,
+                  borderRadius: BorderRadius.circular(8.0),
+                  child: SizedBox(
+                    width: MediaQuery.of(context).size.width,
+                    child: child,
+                  ),
+                );
+              },
+              children: list.items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                final isSelected = settings.selectedIndex == index;
+                final isEditing = _editingIndex == index;
 
-              return Container(
-                key: ValueKey(item.name + index.toString()),
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 2,
-                ),
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 0,
-                    ),
-                    dense: true, // Уменьшаем высоту строки
-                    leading: Checkbox(
-                      value: item.isChecked,
-                      onChanged: isEditing ? null : (_) => _toggleItem(index),
-                      visualDensity: VisualDensity.compact, // Уменьшаем размер чекбокса
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    title: isEditing
-                        ? TextField(
-                            controller: _textController,
-                            autofocus: true,
-                            style: TextStyle(
-                              fontSize: settings.fontSize,
-                            ),
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                              hintText: enterItemHint,
-                              hintStyle: TextStyle(
+                return Container(
+                  key: ValueKey(item.name + index.toString()),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 0,
+                      ),
+                      dense: true,
+                      leading: Checkbox(
+                        value: item.isChecked,
+                        onChanged: isEditing ? null : (_) => _toggleItem(index),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      title: isEditing
+                          ? TextField(
+                              controller: _textController,
+                              autofocus: true,
+                              style: TextStyle(
                                 fontSize: settings.fontSize,
-                                color: Colors.grey.shade400,
+                              ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                                hintText: enterItemHint,
+                                hintStyle: TextStyle(
+                                  fontSize: settings.fontSize,
+                                  color: Colors.grey.shade400,
+                                ),
+                              ),
+                              onSubmitted: (_) => _saveEditing(),
+                            )
+                          : Text(
+                              item.name.isEmpty ? localizations.empty : item.name,
+                              style: TextStyle(
+                                fontSize: settings.fontSize,
+                                decoration: item.isChecked
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
+                                color: isSelected
+                                    ? Colors.deepPurple
+                                    : (item.isChecked 
+                                        ? Colors.grey 
+                                        : (item.name.isEmpty ? Colors.grey.shade400 : Colors.black)),
+                                fontWeight: item.name.isEmpty ? FontWeight.w300 : FontWeight.normal,
+                                fontStyle: item.name.isEmpty ? FontStyle.italic : FontStyle.normal,
                               ),
                             ),
-                            onSubmitted: (_) => _saveEditing(),
-                          )
-                        : Text(
-                            item.name.isEmpty ? localizations.empty : item.name,
-                            style: TextStyle(
-                              fontSize: settings.fontSize,
-                              decoration: item.isChecked
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                              color: isSelected
-                                  ? Colors.deepPurple
-                                  : (item.isChecked 
-                                      ? Colors.grey 
-                                      : (item.name.isEmpty ? Colors.grey.shade400 : Colors.black)),
-                              fontWeight: item.name.isEmpty ? FontWeight.w300 : FontWeight.normal,
-                              fontStyle: item.name.isEmpty ? FontStyle.italic : FontStyle.normal,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isEditing) ...[
+                            IconButton(
+                              icon: const Icon(Icons.check, color: Colors.green),
+                              onPressed: _saveEditing,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                             ),
-                          ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (isEditing) ...[
-                          IconButton(
-                            icon: const Icon(Icons.check, color: Colors.green),
-                            onPressed: _saveEditing,
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            onPressed: _cancelEditing,
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                          ),
-                        ] else ...[
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: Colors.blue),
-                            onPressed: () => _startEditing(index),
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                          ),
-                          const SizedBox(width: 2),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                            onPressed: () => _deleteItem(index),
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                          ),
+                            IconButton(
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              onPressed: _cancelEditing,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            ),
+                          ] else ...[
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                              onPressed: () => _startEditing(index),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            ),
+                            const SizedBox(width: 2),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              onPressed: () => _deleteItem(index),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
+                      onTap: isEditing ? null : () => _selectItem(index),
                     ),
-                    onTap: isEditing ? null : () => _selectItem(index),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           );
   }
 }

@@ -76,7 +76,7 @@ class ListService {
       
       // Если есть Google Drive и авторизация, сохраняем туда
       if (driveService != null && driveService.isAuthenticated) {
-        final success = await driveService.uploadFile('list.yaml', yamlString);
+        final success = await driveService.uploadFile(listFileName, yamlString);
         if (success) {
           if (kDebugMode) print('Список сохранен в Google Drive');
         } else {
