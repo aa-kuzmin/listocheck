@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:universal_html/html.dart' as html;
 import 'package:permission_handler/permission_handler.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../services/providers_service.dart';
@@ -21,7 +20,6 @@ class GoogleAccountScreen extends ConsumerStatefulWidget {
 class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
   bool _isLoading = false;
   bool _isLoadingFiles = false;
-  bool _isDeletingAll = false;
   List<Map<String, dynamic>> _driveFiles = [];
   bool _showFiles = false;
 
@@ -190,94 +188,105 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
     }
   }
 
-  // ✅ Сохранение файлов с использованием Share Plus
+  // ✅ Сохранение файла в папку Загрузки
   Future<void> _saveFileToDownloads(List<int> data, String fileName) async {
     try {
-      // Сохраняем файл во временную папку
-      final tempDir = await getTemporaryDirectory();
-      final tempFile = File('${tempDir.path}/$fileName');
-      await tempFile.writeAsBytes(data);
+      Directory? downloadsDir;
       
-      if (Platform.isAndroid || Platform.isIOS) {
-        // Используем Share Plus для Android и iOS
-        final result = await Share.shareXFiles(
-          [XFile(tempFile.path, name: fileName)],
-          text: 'Скачанный файл: $fileName',
-        );
-        
-        if (result.status == ShareResultStatus.success) {
+      if (Platform.isAndroid) {
+        // Запрашиваем разрешение
+        final status = await Permission.storage.request();
+        if (!status.isGranted) {
+          final tempDir = await getTemporaryDirectory();
+          final file = File('${tempDir.path}/$fileName');
+          await file.writeAsBytes(data);
+          
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('✅ Файл сохранён успешно!')),
+              SnackBar(content: Text('Файл сохранён во временную папку: ${file.path}')),
             );
           }
-        } else {
-          // Если пользователь отменил, показываем где файл сохранен
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('📁 Файл сохранён во временную папку: ${tempFile.path}')),
-            );
-          }
-        }
-      } else {
-        // Для Desktop пытаемся сохранить в Downloads
-        String? downloadsPath;
-        
-        if (Platform.isMacOS) {
-          final home = Platform.environment['HOME'] ?? '';
-          downloadsPath = '$home/Downloads';
-        } else if (Platform.isWindows) {
-          final userProfile = Platform.environment['USERPROFILE'] ?? '';
-          downloadsPath = '$userProfile\\Downloads';
-        } else if (Platform.isLinux) {
-          final home = Platform.environment['HOME'] ?? '';
-          downloadsPath = '$home/Downloads';
+          return;
         }
         
-        if (downloadsPath != null) {
-          final downloadsDir = Directory(downloadsPath);
-          if (await downloadsDir.exists()) {
-            final finalFile = File('$downloadsPath/$fileName');
-            await tempFile.copy(finalFile.path);
+        // Пытаемся сохранить в Downloads
+        try {
+          final externalDir = await getExternalStorageDirectory();
+          if (externalDir != null) {
+            // Пробуем разные пути для Downloads
+            final possiblePaths = [
+              '/storage/emulated/0/Download',
+              '/sdcard/Download',
+              '/storage/emulated/0/Downloads',
+              '/sdcard/Downloads',
+              '${externalDir.path}/../Download',
+              '${externalDir.path}/../../Download',
+            ];
             
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('✅ Файл сохранён в: ${finalFile.path}')),
-              );
+            for (final path in possiblePaths) {
+              final dir = Directory(path);
+              if (await dir.exists()) {
+                downloadsDir = dir;
+                break;
+              }
             }
-            return;
           }
+        } catch (e) {
+          // Игнорируем ошибки
         }
-        
-        // Fallback: Documents папка
-        final appDocDir = await getApplicationDocumentsDirectory();
-        final finalFile = File('${appDocDir.path}/$fileName');
-        await tempFile.copy(finalFile.path);
+      } else if (Platform.isIOS) {
+        downloadsDir = await getApplicationDocumentsDirectory();
+      } else if (Platform.isMacOS) {
+        final home = Platform.environment['HOME'] ?? '';
+        downloadsDir = Directory('$home/Downloads');
+        if (!await downloadsDir.exists()) {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+      } else if (Platform.isWindows) {
+        final userProfile = Platform.environment['USERPROFILE'] ?? '';
+        downloadsDir = Directory('$userProfile\\Downloads');
+        if (!await downloadsDir.exists()) {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+      } else if (Platform.isLinux) {
+        final home = Platform.environment['HOME'] ?? '';
+        downloadsDir = Directory('$home/Downloads');
+        if (!await downloadsDir.exists()) {
+          downloadsDir = await getApplicationDocumentsDirectory();
+        }
+      }
+      
+      if (downloadsDir != null && await downloadsDir.exists()) {
+        final file = File('${downloadsDir.path}/$fileName');
+        await file.writeAsBytes(data);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('📁 Файл сохранён в: ${finalFile.path}')),
+            SnackBar(content: Text('Файл сохранён в: ${file.path}')),
           );
         }
-      }
-    } catch (e) {
-      // Если все else не сработало, оставляем во временной папке
-      try {
+      } else {
+        // Fallback: временная папка
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/$fileName');
         await file.writeAsBytes(data);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('⚠️ Файл сохранён во временную папку: ${file.path}')),
+            SnackBar(content: Text('Файл сохранён во временную папку: ${file.path}')),
           );
         }
-      } catch (e2) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('❌ Ошибка сохранения: $e2')),
-          );
-        }
+      }
+    } catch (e) {
+      // Fallback: временная папка
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$fileName');
+      await file.writeAsBytes(data);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Файл сохранён во временную папку: ${file.path}')),
+        );
       }
     }
   }
@@ -296,148 +305,6 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ошибка скачивания в вебе: $e')),
         );
-      }
-    }
-  }
-
-  // 🗑️ Удаление всех файлов из Google Drive
-  Future<void> _deleteAllFiles() async {
-    if (_driveFiles.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Нет файлов для удаления')),
-        );
-      }
-      return;
-    }
-
-    // Подтверждение удаления
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Удалить все файлы?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Вы уверены, что хотите удалить все файлы из Google Drive?'),
-            const SizedBox(height: 8),
-            Text(
-              'Будет удалено: ${_driveFiles.length} файлов',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Удалить все'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    setState(() {
-      _isDeletingAll = true;
-    });
-
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      final driveApi = driveService.driveApi;
-      if (driveApi == null) {
-        throw Exception('Drive API не доступен');
-      }
-
-      int deletedCount = 0;
-      int errorCount = 0;
-
-      // Показываем прогресс
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text('Удаление файлов... (0/${_driveFiles.length})'),
-            ],
-          ),
-        ),
-      );
-
-      for (int i = 0; i < _driveFiles.length; i++) {
-        final file = _driveFiles[i];
-        try {
-          await driveApi.files.delete(file['id']);
-          deletedCount++;
-          
-          // Обновляем прогресс
-          if (mounted) {
-            Navigator.pop(context);
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text('Удаление файлов... (${i + 1}/${_driveFiles.length})'),
-                  ],
-                ),
-              ),
-            );
-          }
-        } catch (e) {
-          errorCount++;
-          print('Ошибка удаления файла ${file['name']}: $e');
-        }
-      }
-
-      if (mounted) Navigator.pop(context);
-
-      await _loadDriveFiles();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '✅ Удалено: $deletedCount файлов, ошибок: $errorCount',
-            ),
-            backgroundColor: errorCount > 0 ? Colors.orange : Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Ошибка удаления: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isDeletingAll = false;
-        });
       }
     }
   }
@@ -689,50 +556,24 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                   const SizedBox(height: 16),
                   
                   if (kDebugMode) ...[
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _showFiles = !_showFiles;
-                              });
-                              if (_showFiles && _driveFiles.isEmpty) {
-                                _loadDriveFiles();
-                              }
-                            },
-                            icon: Icon(_showFiles ? Icons.visibility_off : Icons.visibility),
-                            label: Text(_showFiles ? 'Скрыть файлы Drive' : 'Показать файлы Drive'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: BorderSide(color: Colors.blue.shade300),
-                            ),
-                          ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _showFiles = !_showFiles;
+                          });
+                          if (_showFiles && _driveFiles.isEmpty) {
+                            _loadDriveFiles();
+                          }
+                        },
+                        icon: Icon(_showFiles ? Icons.visibility_off : Icons.visibility),
+                        label: Text(_showFiles ? 'Скрыть файлы Drive' : 'Показать файлы Drive'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.blue.shade300),
                         ),
-                        const SizedBox(width: 8),
-                        if (_showFiles && _driveFiles.isNotEmpty)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: _isDeletingAll ? null : _deleteAllFiles,
-                              icon: _isDeletingAll
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.delete_forever, color: Colors.red),
-                              label: Text(
-                                _isDeletingAll ? 'Удаление...' : 'Удалить все',
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: const BorderSide(color: Colors.red),
-                                backgroundColor: Colors.red.shade50,
-                              ),
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     
@@ -841,20 +682,6 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
                                       ),
                                       padding: EdgeInsets.zero,
                                     ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete_outline,
-                                        color: Colors.red,
-                                        size: 20,
-                                      ),
-                                      onPressed: () => _deleteSingleFile(file),
-                                      tooltip: 'Удалить файл',
-                                      constraints: const BoxConstraints(
-                                        minWidth: 32,
-                                        minHeight: 32,
-                                      ),
-                                      padding: EdgeInsets.zero,
-                                    ),
                                   ],
                                 ),
                                 onTap: () => _showFileDetails(file),
@@ -945,62 +772,5 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
         ),
       ),
     );
-  }
-
-  // 🗑️ Удаление одного файла
-  Future<void> _deleteSingleFile(Map<String, dynamic> file) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Удалить файл?'),
-        content: Text('Вы уверены, что хотите удалить "${file['name']}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Удалить'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      final driveService = ref.read(googleDriveServiceProvider);
-      final driveApi = driveService.driveApi;
-      if (driveApi == null) return;
-
-      await driveApi.files.delete(file['id']);
-      
-      setState(() {
-        _driveFiles.removeWhere((f) => f['id'] == file['id']);
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Файл "${file['name']}" удалён'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Ошибка удаления: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }
