@@ -7,4 +7,4 @@ if (-not $line) {
 $full = ($line.Line -split ':')[1].Trim()
 $userVersion = if ($full -match '\+') { ($full -split '\+')[0] } else { $full }
 
-flutter build web --dart-define=APP_VERSION=$userVersion
+flutter build web --debug --dart-define=APP_VERSION=$userVersion
