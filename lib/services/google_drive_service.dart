@@ -35,11 +35,21 @@ class GoogleDriveService {
     if (_isInitialized) return;
     _isInitialized = true;
     
-    _googleSignIn = GoogleSignIn(
-//      clientId: kIsWeb ? googleWebClientId : null,
-      scopes: [drive.DriveApi.driveAppdataScope],
-      hostedDomain: null,
-    );
+    // Для веба и мобильных платформ используем разную конфигурацию
+    if (kIsWeb) {
+      // Веб-конфигурация - без serverClientId
+      _googleSignIn = GoogleSignIn(
+        clientId: googleWebClientId,
+        scopes: [drive.DriveApi.driveAppdataScope],
+        hostedDomain: null,
+      );
+    } else {
+      // Мобильная конфигурация
+      _googleSignIn = GoogleSignIn(
+        scopes: [drive.DriveApi.driveAppdataScope],
+        hostedDomain: null,
+      );
+    }
     
     // Для веба проверяем сохраненную сессию
     if (kIsWeb) {
@@ -118,10 +128,27 @@ class GoogleDriveService {
         if (kDebugMode) print('signInSilently не сработал: $e');
       }
       
-      // 3. Пробуем восстановить через сохраненную информацию (для веба - localStorage)
+      // 3. Пробуем восстановить через сохраненную информацию
       final savedInfo = await getSavedAccountInfo();
       if (savedInfo != null) {
         if (kDebugMode) print('Найдена сохраненная информация аккаунта: ${savedInfo['email']}');
+        
+        // Пробуем восстановить через signIn() - покажет диалог если нужно
+        try {
+          final signedIn = await _googleSignIn.signIn();
+          if (signedIn != null) {
+            final authClient = await _googleSignIn.authenticatedClient();
+            if (authClient != null) {
+              _driveApi = drive.DriveApi(authClient);
+              _isAuthenticated = true;
+              _currentUser = signedIn;
+              if (kDebugMode) print('Веб-сессия восстановлена через signIn для: ${signedIn.email}');
+              return true;
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) print('signIn для восстановления не сработал: $e');
+        }
       }
       
       // 4. Проверяем наличие токена в localStorage (GSI)
@@ -129,7 +156,6 @@ class GoogleDriveService {
         final token = html.window.localStorage['gsi_access_token'];
         if (token != null && token.isNotEmpty) {
           if (kDebugMode) print('Найден GSI токен');
-          // Пробуем signIn() - это покажет диалог входа, но пользователь уже авторизован
           final signedIn = await _googleSignIn.signIn();
           if (signedIn != null) {
             final authClient = await _googleSignIn.authenticatedClient();
@@ -211,10 +237,8 @@ class GoogleDriveService {
           
           if (kDebugMode) print('Успешный вход: ${account.email}');
           
-          // ✅ Для веба дополнительно получаем данные профиля через People API
+          // ✅ Для веба сохраняем токен в localStorage
           if (kIsWeb) {
-            await _fetchUserProfile(account);
-            // Сохраняем токен в localStorage для веба
             try {
               final token = await _getAccessToken();
               if (token != null) {
@@ -257,31 +281,6 @@ class GoogleDriveService {
     } catch (e) {
       if (kDebugMode) print('Ошибка получения токена: $e');
       return null;
-    }
-  }
-  
-  // ✅ Получение профиля пользователя через People API (для веба)
-  Future<void> _fetchUserProfile(GoogleSignInAccount account) async {
-    try {
-      final authClient = await _googleSignIn.authenticatedClient();
-      if (authClient == null) return;
-      
-      final response = await authClient.get(
-        Uri.parse(
-          'https://people.googleapis.com/v1/people/me?'
-          'personFields=names,emailAddresses,photos&'
-          'sources=READ_SOURCE_TYPE_PROFILE'
-        ),
-      );
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (kDebugMode) print('Профиль пользователя загружен');
-      } else {
-        if (kDebugMode) print('Ошибка загрузки профиля: ${response.statusCode}');
-      }
-    } catch (e) {
-      if (kDebugMode) print('Ошибка получения профиля: $e');
     }
   }
   
