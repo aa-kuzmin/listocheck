@@ -56,11 +56,12 @@ class GoogleDriveService {
     
     // Для веба и мобильных платформ используем разную конфигурацию
     if (kIsWeb) {
-      // Веб-конфигурация - без serverClientId
+      // Веб-конфигурация - НЕ используем serverClientId
       _googleSignIn = GoogleSignIn(
         clientId: googleWebClientId,
         scopes: [drive.DriveApi.driveAppdataScope],
         hostedDomain: null,
+        // Важно: для веба не передаем serverClientId
       );
     } else {
       // Мобильная конфигурация
@@ -151,22 +152,6 @@ class GoogleDriveService {
       final savedInfo = await getSavedAccountInfo();
       if (savedInfo != null && savedInfo['email'] != null) {
         if (kDebugMode) print('Найдена сохраненная информация аккаунта: ${savedInfo['email']}');
-        // Пробуем восстановить через signIn
-        try {
-          final signedIn = await _googleSignIn.signIn();
-          if (signedIn != null) {
-            final authClient = await _googleSignIn.authenticatedClient();
-            if (authClient != null) {
-              _driveApi = drive.DriveApi(authClient);
-              _isAuthenticated = true;
-              _currentUser = signedIn;
-              if (kDebugMode) print('Веб-сессия восстановлена через signIn для: ${signedIn.email}');
-              return true;
-            }
-          }
-        } catch (e) {
-          if (kDebugMode) print('signIn для восстановления не сработал: $e');
-        }
       }
       
       if (kDebugMode) print('Не удалось восстановить веб-сессию Google');
@@ -223,36 +208,55 @@ class GoogleDriveService {
         return true;
       }
       
-      final GoogleSignInAccount? account = await _googleSignIn.signIn();
-      
-      if (account != null) {
-        final authClient = await _googleSignIn.authenticatedClient();
-        if (authClient != null) {
-          _driveApi = drive.DriveApi(authClient);
-          _isAuthenticated = true;
-          _currentUser = account;
-          
-          if (kDebugMode) print('Успешный вход: ${account.email}');
-          
-          // ✅ Для веба сохраняем токен в localStorage
-          if (kIsWeb) {
-            try {
-              final token = await _getAccessToken();
-              if (token != null) {
-                html.window.localStorage['gsi_access_token'] = token;
+      if (kIsWeb) {
+        // Для веба используем signIn() с явными параметрами
+        try {
+          final GoogleSignInAccount? account = await _googleSignIn.signIn();
+          if (account != null) {
+            final authClient = await _googleSignIn.authenticatedClient();
+            if (authClient != null) {
+              _driveApi = drive.DriveApi(authClient);
+              _isAuthenticated = true;
+              _currentUser = account;
+              
+              if (kDebugMode) print('Успешный вход: ${account.email}');
+              
+              // Сохраняем токен в localStorage
+              try {
+                final token = await _getAccessToken();
+                if (token != null) {
+                  html.window.localStorage['gsi_access_token'] = token;
+                }
+              } catch (e) {
+                if (kDebugMode) print('Ошибка сохранения токена: $e');
               }
-            } catch (e) {
-              if (kDebugMode) print('Ошибка сохранения токена: $e');
+              
+              await _saveAccountInfo(account);
+              return true;
             }
           }
-          
-          // Сохраняем информацию об аккаунте
-          await _saveAccountInfo(account);
-          
-          return true;
+          return false;
+        } catch (e) {
+          if (kDebugMode) print('Ошибка входа через signIn: $e');
+          return false;
         }
+      } else {
+        // Для мобильных платформ
+        final GoogleSignInAccount? account = await _googleSignIn.signIn();
+        if (account != null) {
+          final authClient = await _googleSignIn.authenticatedClient();
+          if (authClient != null) {
+            _driveApi = drive.DriveApi(authClient);
+            _isAuthenticated = true;
+            _currentUser = account;
+            
+            if (kDebugMode) print('Успешный вход: ${account.email}');
+            await _saveAccountInfo(account);
+            return true;
+          }
+        }
+        return false;
       }
-      return false;
     } catch (e) {
       if (kDebugMode) print('Ошибка входа в Google: $e');
       return false;
@@ -297,6 +301,9 @@ class GoogleDriveService {
         html.window.localStorage.remove('gsi_access_token');
         html.window.localStorage.remove('auth_redirect_url');
         html.window.localStorage.remove('account_info');
+        // Очищаем все GSI данные
+        html.window.localStorage.remove('gsi_credentials');
+        html.window.localStorage.remove('gsi_credential_pending');
       } catch (e) {
         // Игнорируем
       }
