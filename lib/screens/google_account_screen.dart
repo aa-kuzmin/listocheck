@@ -526,8 +526,8 @@ class _GoogleAccountScreenState extends ConsumerState<GoogleAccountScreen> {
         listNotifier.setDriveService(driveService);
         settingsNotifier.setDriveService(driveService);
         
-        await listNotifier.loadList();
-        await settingsNotifier.loadSettings();
+        await listNotifier.loadList(force: true);
+        await settingsNotifier.loadSettings(force: true);
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

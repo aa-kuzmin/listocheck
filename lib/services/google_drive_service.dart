@@ -279,19 +279,12 @@ class GoogleDriveService {
       );
       
       if (response is drive.Media) {
-        final tempDir = await getTemporaryDirectory();
-        final tempFile = File('${tempDir.path}/$fileName');
-        
         final List<int> data = [];
         await for (final chunk in response.stream) {
           data.addAll(chunk);
         }
-        
-        await tempFile.writeAsBytes(data);
-        final content = await tempFile.readAsString();
-        await tempFile.delete();
-        
-        return content;
+
+        return utf8.decode(data);
       } else {
         if (kDebugMode) print('Неожиданный тип ответа: ${response.runtimeType}');
         return null;

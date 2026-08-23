@@ -51,8 +51,8 @@ class ListNotifier extends Notifier<ListService> {
     _driveService = service;
   }
 
-  Future<void> loadList() async {
-    if (_isLoaded) return;
+  Future<void> loadList({bool force = false}) async {
+    if (_isLoaded && !force) return;
     
     final result = await ListService.load(driveService: _driveService);
     if (result is Success) {
@@ -144,8 +144,8 @@ class SettingsNotifier extends Notifier<SettingsService> {
   }
 
   // Метод для загрузки настроек
-  Future<void> loadSettings() async {
-    if (_isLoaded) return;
+  Future<void> loadSettings({bool force = false}) async {
+    if (_isLoaded && !force) return;
     
     final result = await SettingsService.load(driveService: _driveService);
     if (result is Success) {
