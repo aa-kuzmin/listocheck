@@ -11,24 +11,45 @@ import 'storage_service.dart';
 import '../constants.dart';
 
 class GoogleDriveService {
+  static final GoogleDriveService _instance = GoogleDriveService._internal();
+  factory GoogleDriveService() => _instance;
+
   late final GoogleSignIn _googleSignIn;
   
   drive.DriveApi? _driveApi;
   bool _isAuthenticated = false;
   GoogleSignInAccount? _currentUser;
+  bool _isInitialized = false;
 
   drive.DriveApi? get driveApi => _driveApi;
 
   Future<String?> getOrCreateAppFolder() => _getOrCreateAppFolder();
 
-  GoogleDriveService() {
+  GoogleDriveService._internal() {
+    _initGoogleSignIn();
+  }
+
+  void _initGoogleSignIn() {
+    if (_isInitialized) return;
+    _isInitialized = true;
+    
     _googleSignIn = GoogleSignIn(
       clientId: kIsWeb ? googleWebClientId : null,
       scopes: [drive.DriveApi.driveAppdataScope],
-      // ✅ Принудительно запрашиваем профиль пользователя
       hostedDomain: null,
     );
   }
+
+  // GoogleDriveService() {
+  //   _googleSignIn = GoogleSignIn(
+  //     clientId: kIsWeb ? googleWebClientId : null,
+  //     scopes: [drive.DriveApi.driveAppdataScope],
+  //     // ✅ Для веба добавляем параметры
+  //     serverClientId: kIsWeb ? googleWebClientId : null,
+  //     // ✅ Принудительно запрашиваем профиль пользователя
+  //     hostedDomain: null,
+  //   );
+  // }
   
   // Проверка авторизации
   bool get isAuthenticated => _isAuthenticated;
