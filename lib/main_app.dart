@@ -14,39 +14,49 @@ class MainApp extends ConsumerStatefulWidget {
 }
 
 class _AppState extends ConsumerState<MainApp> {
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
-    // Загружаем данные в фоне
+    // Загружаем данные после первой отрисовки
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
-    // Инициализируем Google Drive при запуске приложения
-    _initializeGoogleDrive();
-    ref.watch(googleDriveInitializationProvider);
-  }
-
-  Future<void> _initializeGoogleDrive() async {
-    // Ждем инициализации Google Drive
-    await ref.read(googleDriveInitializationProvider.future);
   }
 
   Future<void> _loadData() async {
     try {
+      // Сначала инициализируем Google Drive
+      final driveInitResult = await ref.read(googleDriveInitializationProvider.future);
+      
+      if (kDebugMode) print('Google Drive инициализация: $driveInitResult');
+      
+      // Затем загружаем настройки и список
       final settingsNotifier = ref.read(settingsProvider.notifier);
-      final settings = ref.read(settingsProvider);
       final listNotifier = ref.read(listProvider.notifier);
-      final list = ref.read(listProvider);
       
       await Future.wait([
         settingsNotifier.loadSettings(),
         listNotifier.loadList(),
       ]);
-      if (settings.selectedIndex > list.items.length || settings.selectedIndex < 0) {
+      
+      // Обновляем выбранный индекс
+      final settings = ref.read(settingsProvider);
+      final list = ref.read(listProvider);
+      
+      if (settings.selectedIndex > list.items.length - 1 || settings.selectedIndex < 0) {
         settingsNotifier.setSelectedIndex(list.items.length - 1);
       }
+      
+      setState(() {
+        _isInitialized = true;
+      });
     } catch (e) {
       if (kDebugMode) print('Error loading data: $e');
+      setState(() {
+        _isInitialized = true;
+      });
     }
   }
 
