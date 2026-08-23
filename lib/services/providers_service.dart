@@ -14,15 +14,16 @@ final googleDriveServiceProvider = Provider<GoogleDriveService>((ref) => GoogleD
 final googleDriveAuthProvider = StateProvider<bool>((ref) => false);
 final googleDriveAccountProvider = StateProvider<String?>((ref) => null);
 
+
 final googleDriveInitializationProvider = FutureProvider<bool>((ref) async {
-  final driveService = ref.watch(googleDriveServiceProvider);
+  final driveService = ref.read(googleDriveServiceProvider);
   final success = await driveService.restoreSession();
   
   if (success) {
+    ref.read(googleDriveAuthProvider.notifier).state = true;
     final account = driveService.getCurrentAccount();
     ref.read(googleDriveAccountProvider.notifier).state = account?.email;
-    ref.read(googleDriveAuthProvider.notifier).state = true;
-    
+
     // Если сессия восстановлена, обновляем провайдеры
     final listNotifier = ref.read(listProvider.notifier);
     final settingsNotifier = ref.read(settingsProvider.notifier);
@@ -32,10 +33,34 @@ final googleDriveInitializationProvider = FutureProvider<bool>((ref) async {
     // Загружаем данные из Drive
     await listNotifier.loadList();
     await settingsNotifier.loadSettings();
+
   }
   
   return success;
 });
+
+// final googleDriveInitializationProvider = FutureProvider<bool>((ref) async {
+//   final driveService = ref.watch(googleDriveServiceProvider);
+//   final success = await driveService.restoreSession();
+  
+//   if (success) {
+//     final account = driveService.getCurrentAccount();
+//     ref.read(googleDriveAccountProvider.notifier).state = account?.email;
+//     ref.read(googleDriveAuthProvider.notifier).state = true;
+    
+//     // Если сессия восстановлена, обновляем провайдеры
+//     final listNotifier = ref.read(listProvider.notifier);
+//     final settingsNotifier = ref.read(settingsProvider.notifier);
+//     listNotifier.setDriveService(driveService);
+//     settingsNotifier.setDriveService(driveService);
+    
+//     // Загружаем данные из Drive
+//     await listNotifier.loadList();
+//     await settingsNotifier.loadSettings();
+//   }
+  
+//   return success;
+// });
 
 class ListNotifier extends Notifier<ListService> {
   bool _isLoaded = false;

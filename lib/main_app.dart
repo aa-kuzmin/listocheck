@@ -23,6 +23,7 @@ class _AppState extends ConsumerState<MainApp> {
     });
     // Инициализируем Google Drive при запуске приложения
     _initializeGoogleDrive();
+    ref.watch(googleDriveInitializationProvider);
   }
 
   Future<void> _initializeGoogleDrive() async {
