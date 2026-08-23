@@ -25,8 +25,6 @@ class GoogleDriveService {
     _googleSignIn = GoogleSignIn(
       clientId: kIsWeb ? googleWebClientId : null,
       scopes: [drive.DriveApi.driveAppdataScope],
-      // ✅ Для веба добавляем параметры
-      serverClientId: kIsWeb ? googleWebClientId : null,
       // ✅ Принудительно запрашиваем профиль пользователя
       hostedDomain: null,
     );
