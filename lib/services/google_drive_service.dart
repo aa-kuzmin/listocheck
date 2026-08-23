@@ -1,6 +1,6 @@
 ﻿import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -36,10 +36,9 @@ class GoogleDriveService {
     _isInitialized = true;
     
     _googleSignIn = GoogleSignIn(
-      clientId: kIsWeb ? googleWebClientId : null,
+//      clientId: kIsWeb ? googleWebClientId : null,
       scopes: [drive.DriveApi.driveAppdataScope],
       hostedDomain: null,
-      serverClientId: kIsWeb ? googleWebClientId : null,
     );
     
     // Для веба проверяем сохраненную сессию
@@ -119,7 +118,7 @@ class GoogleDriveService {
         if (kDebugMode) print('signInSilently не сработал: $e');
       }
       
-      // 3. Пробуем восстановить через сохраненную информацию
+      // 3. Пробуем восстановить через сохраненную информацию (для веба - localStorage)
       final savedInfo = await getSavedAccountInfo();
       if (savedInfo != null) {
         if (kDebugMode) print('Найдена сохраненная информация аккаунта: ${savedInfo['email']}');
@@ -301,6 +300,7 @@ class GoogleDriveService {
       try {
         html.window.localStorage.remove('gsi_access_token');
         html.window.localStorage.remove('auth_redirect_url');
+        html.window.localStorage.remove('account_info');
       } catch (e) {
         // Игнорируем
       }
@@ -317,9 +317,15 @@ class GoogleDriveService {
         'timestamp': DateTime.now().toIso8601String(),
       };
       
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$authFileName');
-      await file.writeAsString(jsonEncode(data));
+      if (kIsWeb) {
+        // Для веба сохраняем в localStorage
+        html.window.localStorage['account_info'] = jsonEncode(data);
+      } else {
+        // Для мобильных платформ сохраняем в файл
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/$authFileName');
+        await file.writeAsString(jsonEncode(data));
+      }
     } catch (e) {
       if (kDebugMode) print('Ошибка сохранения информации об аккаунте: $e');
     }
@@ -328,10 +334,14 @@ class GoogleDriveService {
   // Удаление информации об аккаунте
   Future<void> _deleteAccountInfo() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$authFileName');
-      if (await file.exists()) {
-        await file.delete();
+      if (kIsWeb) {
+        html.window.localStorage.remove('account_info');
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/$authFileName');
+        if (await file.exists()) {
+          await file.delete();
+        }
       }
     } catch (e) {
       if (kDebugMode) print('Ошибка удаления информации об аккаунте: $e');
@@ -341,13 +351,23 @@ class GoogleDriveService {
   // Получение сохраненной информации об аккаунте
   Future<Map<String, dynamic>?> getSavedAccountInfo() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/$authFileName');
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        return jsonDecode(content) as Map<String, dynamic>;
+      if (kIsWeb) {
+        // Для веба читаем из localStorage
+        final data = html.window.localStorage['account_info'];
+        if (data != null && data.isNotEmpty) {
+          return jsonDecode(data) as Map<String, dynamic>;
+        }
+        return null;
+      } else {
+        // Для мобильных платформ читаем из файла
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/$authFileName');
+        if (await file.exists()) {
+          final content = await file.readAsString();
+          return jsonDecode(content) as Map<String, dynamic>;
+        }
+        return null;
       }
-      return null;
     } catch (e) {
       if (kDebugMode) print('Ошибка чтения информации об аккаунте: $e');
       return null;
