@@ -22,6 +22,9 @@ class GoogleDriveService {
   GoogleSignInAccount? _currentUser;
   bool _isInitialized = false;
   bool _isRestoring = false;
+  
+  // Флаг для предотвращения множественной инициализации GSI
+  static bool _gsiInitialized = false;
 
   drive.DriveApi? get driveApi => _driveApi;
 
@@ -34,6 +37,22 @@ class GoogleDriveService {
   void _initGoogleSignIn() {
     if (_isInitialized) return;
     _isInitialized = true;
+    
+    // Для веба проверяем, не инициализирован ли уже GSI
+    if (kIsWeb) {
+      if (_gsiInitialized) {
+        if (kDebugMode) print('GSI уже инициализирован, пропускаем');
+        // Создаем GoogleSignIn без повторной инициализации
+        _googleSignIn = GoogleSignIn(
+          clientId: googleWebClientId,
+          scopes: [drive.DriveApi.driveAppdataScope],
+          hostedDomain: null,
+        );
+        _checkWebSession();
+        return;
+      }
+      _gsiInitialized = true;
+    }
     
     // Для веба и мобильных платформ используем разную конфигурацию
     if (kIsWeb) {
@@ -128,12 +147,11 @@ class GoogleDriveService {
         if (kDebugMode) print('signInSilently не сработал: $e');
       }
       
-      // 3. Пробуем восстановить через сохраненную информацию
+      // 3. Проверяем наличие сохраненной информации
       final savedInfo = await getSavedAccountInfo();
-      if (savedInfo != null) {
+      if (savedInfo != null && savedInfo['email'] != null) {
         if (kDebugMode) print('Найдена сохраненная информация аккаунта: ${savedInfo['email']}');
-        
-        // Пробуем восстановить через signIn() - покажет диалог если нужно
+        // Пробуем восстановить через signIn
         try {
           final signedIn = await _googleSignIn.signIn();
           if (signedIn != null) {
@@ -149,27 +167,6 @@ class GoogleDriveService {
         } catch (e) {
           if (kDebugMode) print('signIn для восстановления не сработал: $e');
         }
-      }
-      
-      // 4. Проверяем наличие токена в localStorage (GSI)
-      try {
-        final token = html.window.localStorage['gsi_access_token'];
-        if (token != null && token.isNotEmpty) {
-          if (kDebugMode) print('Найден GSI токен');
-          final signedIn = await _googleSignIn.signIn();
-          if (signedIn != null) {
-            final authClient = await _googleSignIn.authenticatedClient();
-            if (authClient != null) {
-              _driveApi = drive.DriveApi(authClient);
-              _isAuthenticated = true;
-              _currentUser = signedIn;
-              if (kDebugMode) print('Веб-сессия восстановлена через GSI токен для: ${signedIn.email}');
-              return true;
-            }
-          }
-        }
-      } catch (e) {
-        if (kDebugMode) print('Ошибка восстановления через GSI токен: $e');
       }
       
       if (kDebugMode) print('Не удалось восстановить веб-сессию Google');
