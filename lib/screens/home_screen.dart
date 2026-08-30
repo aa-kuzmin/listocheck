@@ -18,8 +18,6 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   int _currentPageIndex = 0;
-  double _lastScrollOffset = 0.0;
-  bool _isFabVisible = true;
   final GlobalKey<ListScreenState> _listScreenKey = GlobalKey<ListScreenState>();
 
   @override
@@ -45,40 +43,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       state.addNewEmptyItem();
     }
     
-    // После добавления элемента проверяем, помещается ли список на экране
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkIfListFitsScreen();
-    });
-  }
 
-  // Проверка, помещается ли список на экране
-  void _checkIfListFitsScreen() {
-    if (_currentPageIndex != 0) return;
-    
-    // Получаем контекст ListScreen
-    final context = _listScreenKey.currentContext;
-    if (context == null) return;
-    
-    // Ищем RenderBox для определения размера
-    final renderBox = context.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
-    
-    // Получаем размер экрана
-    final screenSize = MediaQuery.of(context).size;
-    final appBarHeight = AppBar().preferredSize.height;
-    final statusBarHeight = MediaQuery.of(context).padding.top;
-    
-    // Доступная высота для списка
-    final availableHeight = screenSize.height - statusBarHeight - appBarHeight;
-    
-    // Проверяем, если список меньше доступной высоты, показываем кнопку
-    if (renderBox.size.height < availableHeight) {
-      if (!_isFabVisible) {
-        setState(() {
-          _isFabVisible = true;
-        });
-      }
-    }
   }
 
   // Снять пометки у всего списка
@@ -133,7 +98,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 setState(() {
                   listNotifier.clear();
                   settingsNotifier.setSelectedIndex(-1);
-                  _isFabVisible = true; // Показываем кнопку после очистки
                 });
                 Navigator.pop(context);
                 _showInfoMessage(localizations.listCleared);
@@ -255,11 +219,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   setState(() {
                     _currentPageIndex = 0;
-                    _isFabVisible = true; // При переключении на список показываем кнопку
-                    // Проверяем, помещается ли список на экране
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _checkIfListFitsScreen();
-                    });
                   });
                   Navigator.pop(context);
                 },
@@ -304,48 +263,15 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
         ),
-        body: NotificationListener<ScrollNotification>(
-          onNotification: (ScrollNotification notification) {
-            if (notification is ScrollUpdateNotification && _currentPageIndex == 0) {
-              final currentOffset = notification.metrics.pixels;
-              
-              // Порог чувствительности, чтобы избежать дрожания у самого верха
-              if ((currentOffset - _lastScrollOffset).abs() > 5) {
-                if (currentOffset > _lastScrollOffset) {
-                  // Пользователь листает вниз — прячем кнопку
-                  if (_isFabVisible) {
-                    setState(() {
-                      _isFabVisible = false;
-                    });
-                  }
-                } else if (currentOffset < _lastScrollOffset) {
-                  // Пользователь листает вверх — показываем кнопку
-                  if (!_isFabVisible) {
-                    setState(() {
-                      _isFabVisible = true;
-                    });
-                  }
-                }
-                _lastScrollOffset = currentOffset;
-              }
-            }
-            
-            // При достижении конца списка проверяем, помещается ли он на экране
-            if (notification is ScrollEndNotification && _currentPageIndex == 0) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _checkIfListFitsScreen();
-              });
-            }
-            
-            return false;
-          },
-          child: _getCurrentPage(),
-        ),
-        floatingActionButton: _currentPageIndex == 0 && _isFabVisible
-            ? FloatingActionButton(
-                tooltip: localizations.addItem,
-                onPressed: _addEmptyItem,
-                child: const Icon(Icons.add),
+        body: _getCurrentPage(),
+        floatingActionButton: _currentPageIndex == 0
+            ? Opacity(
+                opacity: 0.6,
+                child: FloatingActionButton(
+                  tooltip: localizations.addItem,
+                  onPressed: _addEmptyItem,
+                  child: const Icon(Icons.add),
+                ),
               )
             : null,
       )
