@@ -176,4 +176,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errAccLink => 'Account linking error';
+
+  @override
+  String get loadingList => 'Loading list...';
 }

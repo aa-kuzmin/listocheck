@@ -7,6 +7,7 @@ import 'google_account_screen.dart';
 import 'settings_screen.dart';
 import 'list_screen.dart';
 import 'about_screen.dart';
+import 'loading_screen.dart';
 import '../services/providers_service.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -42,7 +43,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (state != null) {
       state.addNewEmptyItem();
     }
-    
 
   }
 
@@ -113,6 +113,11 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   // Получение текущей страницы
   Widget _getCurrentPage() {
+    final settings = ref.watch(settingsProvider);
+    final list = ref.watch(listProvider);
+
+    if (settings.isLoading || list.isLoading) return SafeArea(child: LoadingScreen());
+    
     switch (_currentPageIndex) {
       case 0:
         return SafeArea(
@@ -181,90 +186,90 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
         drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      localizations.appTitle,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      DrawerHeader(
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              localizations.appTitle,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              localizations.appDescription,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      localizations.appDescription,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
+                      ListTile(
+                        leading: const Icon(Icons.list, color: Colors.blue),
+                        title: Text(localizations.list),
+                        selected: _currentPageIndex == 0,
+                        selectedTileColor: Colors.blue.shade50,
+                        onTap: () {
+                          setState(() {
+                            _currentPageIndex = 0;
+                          });
+                          Navigator.pop(context);
+                        },
                       ),
-                    ),
-                  ],
+                      ListTile(
+                        leading: const Icon(Icons.settings, color: Colors.green),
+                        title: Text(localizations.settings),
+                        selected: _currentPageIndex == 1,
+                        selectedTileColor: Colors.blue.shade50,
+                        onTap: () {
+                          setState(() {
+                            _currentPageIndex = 1;
+                          });
+                          Navigator.pop(context);
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.cloud, color: Colors.blue),
+                        title: Text(localizations.sync),
+                        selected: _currentPageIndex == 2,
+                        selectedTileColor: Colors.blue.shade50,
+                        onTap: () {
+                          setState(() {
+                            _currentPageIndex = 2;
+                          });
+                          Navigator.pop(context);
+                        },
+                      ),
+                      const Divider(),
+                      ListTile(
+                        leading: const Icon(Icons.info_outline, color: Colors.orange),
+                        title: Text(localizations.aboutApp),
+                        selected: _currentPageIndex == 3,
+                        selectedTileColor: Colors.blue.shade50,
+                        onTap: () {
+                          setState(() {
+                            _currentPageIndex = 3;
+                          });
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.list, color: Colors.blue),
-                title: Text(localizations.list),
-                selected: _currentPageIndex == 0,
-                selectedTileColor: Colors.blue.shade50,
-                onTap: () {
-                  setState(() {
-                    _currentPageIndex = 0;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings, color: Colors.green),
-                title: Text(localizations.settings),
-                selected: _currentPageIndex == 1,
-                selectedTileColor: Colors.blue.shade50,
-                onTap: () {
-                  setState(() {
-                    _currentPageIndex = 1;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.cloud, color: Colors.blue),
-                title: Text(localizations.sync),
-                selected: _currentPageIndex == 2,
-                selectedTileColor: Colors.blue.shade50,
-                onTap: () {
-                  setState(() {
-                    _currentPageIndex = 2;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.info_outline, color: Colors.orange),
-                title: Text(localizations.aboutApp),
-                selected: _currentPageIndex == 3,
-                selectedTileColor: Colors.blue.shade50,
-                onTap: () {
-                  setState(() {
-                    _currentPageIndex = 3;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
         body: _getCurrentPage(),
-        floatingActionButton: _currentPageIndex == 0
+        floatingActionButton: _currentPageIndex == 0 && !settings.isLoading && !list.isLoading
             ? Opacity(
                 opacity: 0.6,
                 child: FloatingActionButton(

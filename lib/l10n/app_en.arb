@@ -54,5 +54,6 @@
   "googleLinkAccount": "Link a Google account",
   "dataSyncOnSaving": "The data is automatically synchronized upon saving",
   "accLinkSuccess": "The account has been successfully linked!",
-  "errAccLink": "Account linking error"
+  "errAccLink": "Account linking error",
+  "loadingList": "Loading list..."
 }

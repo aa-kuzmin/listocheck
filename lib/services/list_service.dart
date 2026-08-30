@@ -9,10 +9,11 @@ import '../constants.dart';
 
 class ListService {
   List<ChecklistItem> items;
+  final bool isLoading;
 
   bool _isFromDrive = false;
 
-  ListService(this.items, {this._isFromDrive = false});
+  ListService(this.items, {this._isFromDrive = false, this.isLoading = false});
 
   /// Фабричный конструктор, создающий экземпляр [ListService] напрямую из YamlMap.
   factory ListService.fromYaml(YamlMap map, {bool isFromDrive = false}) {
@@ -31,7 +32,7 @@ class ListService {
         list.add(ChecklistItem(name: raw, isChecked: false));
       }
     }
-    return ListService(list, isFromDrive: isFromDrive);
+    return ListService(list, isFromDrive: isFromDrive, isLoading: false);
   }
 
   // Загрузка списка из файла

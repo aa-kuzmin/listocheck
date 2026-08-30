@@ -58,7 +58,7 @@ class ListNotifier extends Notifier<ListService> {
 
   @override
   ListService build() {
-    return ListService([]);
+    return ListService([], isLoading: true);
   }
 
   void setDriveService(GoogleDriveService? service) {

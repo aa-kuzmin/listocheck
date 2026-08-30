@@ -427,6 +427,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Ошибка подключения аккаунта'**
   String get errAccLink;
+
+  /// No description provided for @loadingList.
+  ///
+  /// In ru, this message translates to:
+  /// **'Загрузка списка...'**
+  String get loadingList;
 }
 
 class _AppLocalizationsDelegate

@@ -178,4 +178,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get errAccLink => 'Ошибка подключения аккаунта';
+
+  @override
+  String get loadingList => 'Загрузка списка...';
 }
